@@ -2,7 +2,6 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Read Firebase config from environment variables
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,7 +12,6 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Function to check if the essential config values are provided
 export function configIsValid(): boolean {
     return !!(
       firebaseConfig.apiKey &&
@@ -23,7 +21,6 @@ export function configIsValid(): boolean {
     );
 }
 
-// Initialize Firebase App
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 

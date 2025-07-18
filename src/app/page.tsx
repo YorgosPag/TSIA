@@ -28,63 +28,66 @@ export default function Home() {
   const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
 
   useEffect(() => {
-    const configured = configIsValid();
-    setIsFirebaseConfigured(configured);
+    const checkConfig = () => {
+      const configured = configIsValid();
+      setIsFirebaseConfigured(configured);
 
-    if (!configured) {
-        setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
-        setLoading(false);
-        return;
-    }
+      if (!configured) {
+          setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
+          setLoading(false);
+          return;
+      }
 
-    setLoading(true);
-    const entriesCollectionRef = collection(db, "tsia-entries");
-    const q = query(entriesCollectionRef);
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedEntries = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Entry));
+      setLoading(true);
+      const entriesCollectionRef = collection(db, "tsia-contatti");
+      const q = query(entriesCollectionRef);
       
-      fetchedEntries.sort((a, b) => {
-          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-          return dateB.getTime() - dateA.getTime();
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedEntries = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Entry));
+        
+        fetchedEntries.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+            return dateB.getTime() - dateA.getTime();
+        });
+
+        setEntries(fetchedEntries);
+        if (selectedEntry) {
+            const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
+            setSelectedEntry(updatedSelected);
+        }
+        setLoading(false);
+        setError(null);
+      }, (err) => {
+        console.error("Firestore snapshot error:", err);
+        if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
+          setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
+        } else if (err.message.includes('firestore/unavailable')) {
+             setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
+        } else if (err.message.includes('requires an index')) {
+             setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
+        }
+        else {
+          setError("Αποτυχία φόρτωσης δεδομένων.");
+        }
+        setLoading(false);
       });
 
-      setEntries(fetchedEntries);
-      if (selectedEntry) {
-          const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
-          setSelectedEntry(updatedSelected);
-      }
-      setLoading(false);
-      setError(null);
-    }, (err) => {
-      console.error("Firestore snapshot error:", err);
-      if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
-        setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
-      } else if (err.message.includes('firestore/unavailable')) {
-           setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
-      } else if (err.message.includes('requires an index')) {
-           setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
-      }
-      else {
-        setError("Αποτυχία φόρτωσης δεδομένων.");
-      }
-      setLoading(false);
-    });
-
-    return () => {
-        unsubscribe();
+      return () => {
+          unsubscribe();
+      };
     };
-  }, [selectedEntry?.id, isFirebaseConfigured]); // Added isFirebaseConfigured dependency
+    checkConfig();
+  }, [selectedEntry?.id]);
 
   const handleAddClick = async () => {
     if (name.trim() && isFirebaseConfigured) {
       try {
         setError(null);
-        const entriesCollectionRef = collection(db, "tsia-entries");
+        const entriesCollectionRef = collection(db, "tsia-contatti");
         await addDoc(entriesCollectionRef, { 
           name: name,
           createdAt: serverTimestamp() 
@@ -117,7 +120,7 @@ export default function Home() {
     if (editingName.trim() && isFirebaseConfigured) {
       try {
         setError(null);
-        const entryDocRef = doc(db, "tsia-entries", id);
+        const entryDocRef = doc(db, "tsia-contatti", id);
         await updateDoc(entryDocRef, { 
             name: editingName
         });
@@ -136,7 +139,7 @@ export default function Home() {
       if(selectedEntry?.id === id) {
         setSelectedEntry(null);
       }
-      const entryDocRef = doc(db, "tsia-entries", id);
+      const entryDocRef = doc(db, "tsia-contatti", id);
       await deleteDoc(entryDocRef);
     } catch (e) {
       console.error("Error deleting document: ", e);
