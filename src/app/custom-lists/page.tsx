@@ -13,7 +13,6 @@ import {
   orderBy,
   writeBatch,
   getDocs,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
