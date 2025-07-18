@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC3c-3X8P0o_m7Av6iuixd673ddtDM4d4s",
-  authDomain: "tsia-96afd.firebaseapp.com",
-  projectId: "tsia-96afd",
-  storageBucket: "tsia-96afd.appspot.com",
-  messagingSenderId: "392609655230",
-  appId: "1:392609655230:web:b9f3704dc56837b317f1ef",
-  measurementId: "G-RV2TH9CW39"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase only if not already initialized
