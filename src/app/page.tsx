@@ -5,22 +5,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [submittedName, setSubmittedName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
 
   const handleAddClick = () => {
-    setSubmittedName(inputValue);
+    if (inputValue.trim()) {
+      setSubmittedName(inputValue);
+      setEditedName(inputValue); // Sync editedName with the new submission
+      setInputValue(''); // Clear the main input
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       handleAddClick();
+    }
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveClick = () => {
+    setSubmittedName(editedName);
+    setIsEditing(false);
+  };
+
+  const handleEditKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSaveClick();
     }
   };
 
@@ -50,9 +72,30 @@ export default function Home() {
               </div>
             </div>
             {submittedName && (
-              <div className="mt-6 rounded-lg bg-accent p-6 text-center text-accent-foreground transition-all duration-300">
-                <p className="text-lg">Welcome,</p>
-                <p className="text-4xl font-bold">{submittedName}</p>
+              <div className="mt-6 rounded-lg bg-accent p-6 text-accent-foreground transition-all duration-300">
+                {isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      className="text-foreground"
+                      autoFocus
+                    />
+                    <Button onClick={handleSaveClick}>Save</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-4">
+                    <div>
+                      <p className="text-lg">Welcome,</p>
+                      <p className="text-4xl font-bold">{submittedName}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={handleEditClick}>
+                      <Pencil className="h-5 w-5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
