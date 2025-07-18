@@ -52,12 +52,12 @@ export function MainLayout({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/projects">
+                <SidebarMenuButton href="/">
                    <GanttChart />Λίστα Έργων
                 </SidebarMenuButton>
               </SidebarMenuItem>
                <SidebarMenuItem>
-                <SidebarMenuButton href="/">
+                <SidebarMenuButton href="/contacts">
                    <BookUser />Λίστα Επαφών
                 </SidebarMenuButton>
               </SidebarMenuItem>

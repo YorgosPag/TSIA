@@ -11,11 +11,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
-import { TriangleAlert, List, Search, Database } from 'lucide-react';
+import { TriangleAlert, List, Search } from 'lucide-react';
 import type { CustomList } from '@/features/custom-lists/types';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Button } from '@/components/ui/button';
-import { seedDatabase } from '@/lib/seedDatabase';
 
 export default function CustomListsPage() {
   const { 
@@ -30,26 +28,10 @@ export default function CustomListsPage() {
   } = useCustomLists();
   const { toast } = useToast();
 
-  const [isSeeding, setIsSeeding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [itemToDelete, setItemToDelete] = useState<{ listId: string; itemId: string; itemName: string; } | null>(null);
   const [listToDelete, setListToDelete] = useState<CustomList | null>(null);
-
-  const handleSeedDatabase = async () => {
-    setIsSeeding(true);
-    try {
-      await seedDatabase();
-      toast({ title: "Επιτυχία", description: "Τα δεδομένα εισήχθησαν επιτυχώς." });
-      // Optionally, you might want to force a refresh of the lists here
-    } catch (err) {
-      console.error(err);
-      const errorMessage = err instanceof Error ? err.message : "Άγνωστο σφάλμα.";
-      toast({ variant: 'destructive', title: "Σφάλμα", description: `Αποτυχία εισαγωγής δεδομένων: ${errorMessage}` });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   const handleDeleteListConfirm = async () => {
     if (!listToDelete) return;
@@ -87,10 +69,6 @@ export default function CustomListsPage() {
     <main className="flex-1 p-6 bg-background">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold flex items-center gap-3"><List />Προσαρμοσμένες Λίστες</h1>
-        <Button onClick={handleSeedDatabase} disabled={isSeeding}>
-          <Database className="mr-2 h-4 w-4" />
-          {isSeeding ? 'Γίνεται εισαγωγή...' : 'Εισαγωγή Δεδομένων'}
-        </Button>
       </div>
       <p className="text-muted-foreground mb-6">
         Διαχειριστείτε τις λίστες επιλογών που χρησιμοποιούνται σε όλη την εφαρμογή.
@@ -155,3 +133,5 @@ export default function CustomListsPage() {
     </main>
   );
 }
+
+    
