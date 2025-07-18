@@ -1,5 +1,16 @@
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
+import {
+  Sidebar,
+  SidebarProvider,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+} from '@/components/ui/sidebar';
+import { Users } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',
@@ -25,7 +36,26 @@ export default function RootLayout({
           rel="stylesheet"
         ></link>
       </head>
-      <body className="font-body antialiased">{children}</body>
+      <body className="font-body antialiased">
+        <SidebarProvider>
+          <Sidebar>
+            <SidebarHeader>
+              <h2 className="text-lg font-semibold">Εφαρμογή</h2>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton href="/" isActive>
+                    <Users />
+                    Επαφές
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarContent>
+          </Sidebar>
+          <SidebarInset>{children}</SidebarInset>
+        </SidebarProvider>
+      </body>
     </html>
   );
 }

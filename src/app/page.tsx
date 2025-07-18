@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, Trash2, Edit, Save, XCircle } from 'lucide-react';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 interface Entry {
   id: string;
@@ -20,31 +21,37 @@ export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 
   useEffect(() => {
-    const entriesCollectionRef = collection(db, "tsia-entries");
-    const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
-      const fetchedEntries = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Entry));
-      fetchedEntries.sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
-      setEntries(fetchedEntries);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore snapshot error:", err);
-      if (err.message.includes('permission-denied')) {
-        setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
-      } else {
-        setError("Αποτυχία φόρτωσης δεδομένων.");
-      }
-      setLoading(false);
-    });
+    try {
+      const entriesCollectionRef = collection(db, "tsia-entries");
+      const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
+        const fetchedEntries = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Entry));
+        fetchedEntries.sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
+        setEntries(fetchedEntries);
+        setLoading(false);
+        setError(null);
+      }, (err) => {
+        console.error("Firestore snapshot error:", err);
+        if (err.message.includes('permission-denied')) {
+          setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
+        } else {
+          setError("Αποτυχία φόρτωσης δεδομένων.");
+        }
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (e: any) {
+        console.error("Firebase initialization error:", e);
+        setError(`Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο 'src/lib/firebase.ts'. Λεπτομέρειες: ${e.message}`);
+        setLoading(false);
+    }
   }, []);
 
   const handleAddClick = async () => {
@@ -103,8 +110,12 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
-      <Card className="w-full max-w-md">
+    <main className="flex min-h-screen flex-col items-center p-4">
+      <div className="flex w-full items-center justify-between pb-4">
+          <SidebarTrigger />
+          <h1 className="text-2xl font-semibold flex-grow text-center">Λίστα Επαφών</h1>
+      </div>
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-3xl font-extrabold text-center tracking-wider">TSIA</CardTitle>
           <CardDescription className="text-center">
@@ -136,7 +147,7 @@ export default function Home() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
             ) : entries.length === 0 ? (
-              <p className="text-center text-muted-foreground italic">Δεν υπάρχει κανένα όνομα.</p>
+              <p className="text-center text-muted-foreground italic">Δεν υπάρχει καμία επαφή.</p>
             ) : (
               <ul className="space-y-2">
                 {entries.map((entry) => (
