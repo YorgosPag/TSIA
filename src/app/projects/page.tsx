@@ -56,8 +56,9 @@ export default function ProjectsPage() {
         if (selectedProject) {
             const updatedSelected = fetchedProjects.find(p => p.id === selectedProject.id);
             if(updatedSelected) {
-                setSelectedProject(updatedSelected);
+                // Do nothing, already selected and data is fresh from snapshot
             } else {
+                // The previously selected project was deleted, select the first one if it exists
                 setSelectedProject(fetchedProjects.length > 0 ? fetchedProjects[0] : null);
             }
         } else if (fetchedProjects.length > 0) {
@@ -82,7 +83,7 @@ export default function ProjectsPage() {
       setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
     }
-  }, [selectedProject]);
+  }, []);
   
   return (
     <main className="flex flex-1 bg-background">
@@ -174,5 +175,3 @@ export default function ProjectsPage() {
     </main>
   );
 }
-
-    
