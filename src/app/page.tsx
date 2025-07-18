@@ -28,8 +28,17 @@ export default function Home() {
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [editingFirstName, setEditingFirstName] = useState('');
   const [editingLastName, setEditingLastName] = useState('');
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
 
   useEffect(() => {
+    if (!db) {
+        setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο 'src/lib/firebase.ts'.");
+        setLoading(false);
+        setIsFirebaseConfigured(false);
+        return;
+    }
+    setIsFirebaseConfigured(true);
+
     let unsubscribe: () => void;
     try {
       const contactsCollectionRef = collection(db, "tsia-contacts");
@@ -59,7 +68,7 @@ export default function Home() {
 
     } catch (e: any) {
         console.error("Firebase initialization error:", e);
-        setError(`Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο 'src/lib/firebase.ts'. Λεπτομέρειες: ${e.message}`);
+        setError(`Η σύνδεση με το Firebase απέτυχε! Λεπτομέρειες: ${e.message}`);
         setLoading(false);
     }
     
@@ -71,7 +80,7 @@ export default function Home() {
   }, [selectedContact?.id]);
 
   const handleAddClick = async () => {
-    if (firstName.trim() && lastName.trim()) {
+    if (firstName.trim() && lastName.trim() && db) {
       try {
         setError(null);
         const contactsCollectionRef = collection(db, "tsia-contacts");
@@ -108,7 +117,7 @@ export default function Home() {
   };
 
   const handleSaveClick = async (id: string) => {
-    if (editingFirstName.trim() && editingLastName.trim()) {
+    if (editingFirstName.trim() && editingLastName.trim() && db) {
       try {
         setError(null);
         const contactDocRef = doc(db, "tsia-contacts", id);
@@ -125,6 +134,7 @@ export default function Home() {
   };
   
   const handleDeleteClick = async (id: string) => {
+    if (!db) return;
     try {
       setError(null);
       if(selectedContact?.id === id) {
@@ -150,6 +160,13 @@ export default function Home() {
           <SidebarTrigger />
           <h1 className="text-2xl font-semibold flex-grow text-center">Λίστα Επαφών</h1>
       </div>
+       { !isFirebaseConfigured && !loading && (
+           <Alert variant="destructive" className="mb-4">
+              <TriangleAlert className="h-4 w-4" />
+              <AlertTitle>Σφάλμα Ρύθμισης Firebase</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+          </Alert>
+       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-7xl mx-auto">
         {/* Left Column */}
         <div className="md:col-span-1 space-y-6">
@@ -168,6 +185,7 @@ export default function Home() {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         onKeyDown={handleAddKeyDown}
+                        disabled={!isFirebaseConfigured}
                     />
                     <Input
                         type="text"
@@ -175,8 +193,9 @@ export default function Home() {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         onKeyDown={handleAddKeyDown}
+                        disabled={!isFirebaseConfigured}
                     />
-                    <Button onClick={handleAddClick} disabled={!firstName.trim() || !lastName.trim()} className="w-full">
+                    <Button onClick={handleAddClick} disabled={!firstName.trim() || !lastName.trim() || !isFirebaseConfigured} className="w-full">
                         Προσθήκη Επαφής
                     </Button>
                 </CardContent>
@@ -189,12 +208,14 @@ export default function Home() {
                 <CardContent>
                     {loading ? (
                     <p className="text-center text-muted-foreground">Φόρτωση επαφών...</p>
-                    ) : error ? (
+                    ) : error && isFirebaseConfigured ? (
                     <Alert variant="destructive">
                         <TriangleAlert className="h-4 w-4" />
                         <AlertTitle>Σφάλμα</AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
+                    ) : !isFirebaseConfigured ? (
+                     <p className="text-center text-muted-foreground italic">Ρυθμίστε το Firebase για να δείτε τις επαφές.</p>
                     ) : contacts.length === 0 ? (
                     <p className="text-center text-muted-foreground italic">Δεν υπάρχει καμία επαφή.</p>
                     ) : (
@@ -271,7 +292,7 @@ export default function Home() {
                          </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">Δεν έχει επιλεγεί επαφή</p>
+                            <p className="text-muted-foreground">{!isFirebaseConfigured ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί επαφή'}</p>
                         </div>
                     )}
                 </CardContent>
