@@ -14,14 +14,15 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Function to check if the config is still using placeholder values
-function isConfigured(config: FirebaseOptions): boolean {
+function isConfigValid(config: FirebaseOptions): boolean {
     return !!config.apiKey && !config.apiKey.startsWith("YOUR_");
 }
 
+const configIsValid = isConfigValid(firebaseConfig);
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = isConfigured(firebaseConfig) ? getFirestore(app) : null;
+// Initialize Firebase only if the config is valid
+const app = configIsValid && getApps().length === 0 ? initializeApp(firebaseConfig) : (configIsValid ? getApp() : null);
+const db = app ? getFirestore(app) : null;
 
 
 export { app, db };
