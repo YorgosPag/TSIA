@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
@@ -17,7 +16,10 @@ export function configIsValid(): boolean {
     return !!(config.apiKey && config.projectId && !config.apiKey.startsWith('YOUR_'));
 }
 
-const app = configIsValid() ? (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)) : null;
+const app = typeof window !== 'undefined' && configIsValid() 
+    ? (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)) 
+    : null;
+    
 const db = app ? getFirestore(app) : null;
 
 export { app, db };

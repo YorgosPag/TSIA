@@ -62,14 +62,8 @@ export default function Home() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!configIsValid()) {
+    if (!configIsValid() || !db) {
         setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
-        setLoading(false);
-        return;
-    }
-    
-    if (!db) {
-        setError("Η βάση δεδομένων Firestore δεν είναι διαθέσιμη.");
         setLoading(false);
         return;
     }
@@ -125,7 +119,7 @@ export default function Home() {
       setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
     }
-  }, []);
+  }, [selectedContact?.id]);
 
   const handleOpenDialog = (contact: Contact | null = null) => {
     setEditingContact(contact);

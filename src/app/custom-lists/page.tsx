@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, List, Plus, Trash2, Search, ChevronsUpDown, ChevronUp, Edit } from 'lucide-react';
+import { TriangleAlert, List, Plus, Trash2, Search, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -84,6 +84,8 @@ export default function CustomListsPage() {
   const [editingListDescription, setEditingListDescription] = useState('');
 
   const [itemToDelete, setItemToDelete] = useState<{ listId: string; itemId: string } | null>(null);
+  const [listToDelete, setListToDelete] = useState<CustomList | null>(null);
+
 
   useEffect(() => {
     if (!configIsValid() || !db) {
@@ -213,7 +215,7 @@ export default function CustomListsPage() {
       setItemToDelete(null);
     }
   };
-  
+
   const handleStartEditingList = (list: CustomList) => {
     setEditingListId(list.id);
     setEditingListTitle(list.title);
@@ -242,6 +244,47 @@ export default function CustomListsPage() {
         toast({ variant: 'destructive', title: "Σφάλμα", description: "Αποτυχία ενημέρωσης λίστας." });
     }
   }
+
+  const handleDeleteList = async () => {
+    if (!db || !listToDelete) return;
+
+    // TODO: Implement a proper check to see if any list item is being used elsewhere in the app.
+    // For now, we are just showing a warning.
+    const isListInUse = false; // Placeholder
+
+    if (isListInUse) {
+      toast({
+        variant: 'destructive',
+        title: "Δεν είναι δυνατή η διαγραφή",
+        description: `Η λίστα "${listToDelete.title}" χρησιμοποιείται και δεν μπορεί να διαγραφεί.`,
+      });
+      setListToDelete(null);
+      return;
+    }
+
+    const batch = writeBatch(db);
+
+    // Delete all items in the subcollection first
+    const itemsCollectionRef = collection(db, 'tsia-custom-lists', listToDelete.id, 'items');
+    const itemsSnapshot = await getDocs(itemsCollectionRef);
+    itemsSnapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    // Then delete the list document itself
+    const listDocRef = doc(db, 'tsia-custom-lists', listToDelete.id);
+    batch.delete(listDocRef);
+
+    try {
+      await batch.commit();
+      toast({ title: "Επιτυχία", description: `Η λίστα "${listToDelete.title}" διαγράφηκε.` });
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: "Σφάλμα", description: "Αποτυχία διαγραφής της λίστας." });
+    } finally {
+      setListToDelete(null);
+    }
+  };
 
 
   const filteredLists = lists.filter(list =>
@@ -324,9 +367,14 @@ export default function CustomListsPage() {
                                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleCancelEditingList(); }}>Ακύρωση</Button>
                                         </>
                                      ) : (
-                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleStartEditingList(list); }}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
+                                        <>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleStartEditingList(list); }}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setListToDelete(list); }}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </>
                                      )}
                                 </div>
                             </div>
@@ -372,6 +420,25 @@ export default function CustomListsPage() {
             <AlertDialogCancel onClick={() => setItemToDelete(null)}>Άκυρο</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Διαγραφή
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!listToDelete} onOpenChange={(open) => !open && setListToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Είστε βέβαιοι για τη διαγραφή της λίστας "{listToDelete?.title}";</AlertDialogTitle>
+            <AlertDialogDescription>
+              Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Θα διαγραφεί οριστικά ολόκληρη η λίστα μαζί με όλα τα περιεχόμενά της.
+              <br/><br/>
+              <strong>Προειδοποίηση:</strong> Βεβαιωθείτε ότι αυτή η λίστα δεν χρησιμοποιείται πουθενά αλλού στην εφαρμογή πριν προχωρήσετε.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setListToDelete(null)}>Άκυρο</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteList} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Οριστική Διαγραφή
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
