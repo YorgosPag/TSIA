@@ -95,17 +95,52 @@ const initialListsData = [
 ];
 
 const projectsData = [
-    { title: "Ανακαίνιση διαμερίσματος στην Τούμπα", status: 'Ενεργό', deadline: new Date(2024, 11, 20) },
-    { title: "Ενεργειακή Αναβάθμιση Μονοκατοικίας στο Πανόραμα", status: 'Ολοκληρωμένο', deadline: new Date(2023, 10, 15) },
-    { title: "Προσφορά για μελέτη στατικής επάρκειας", status: 'Προσφορά', deadline: null },
-    { title: "Αλλαγή κουφωμάτων σε πολυκατοικία στο κέντρο", status: 'Σε Καθυστέρηση', deadline: new Date(2024, 6, 1) },
-    { title: "Τακτοποίηση αυθαιρέτου χώρου", status: 'Ακυρωμένο', deadline: null },
-    { title: "Κατασκευή νέας διώροφης κατοικίας στην Επανομή", status: 'Ενεργό', deadline: new Date(2025, 5, 30) },
-    { title: "Προσφορά για έκδοση ενεργειακού πιστοποιητικού", status: 'Προσφορά', deadline: null },
-    { title: "Ανακαίνιση γραφείου στην Καλαμαριά", status: 'Ολοκληρωμένο', deadline: new Date(2024, 1, 28) },
-    { title: "Μελέτη πυρασφάλειας για κατάστημα υγειονομικού ενδιαφέροντος", status: 'Ενεργό', deadline: new Date(2024, 8, 10) },
-    { title: "Προσθήκη κατ' επέκταση σε υπάρχουσα κατοικία", status: 'Προσφορά', deadline: null },
+  {
+    "title": "Ανακαίνιση κατοικίας Αγγέλου Κωνσταντίνου",
+    "description": "Ολική ανακαίνιση, θερμομόνωση και αντικατάσταση κουφωμάτων.",
+    "applicationNumber": "61-038111",
+    "ownerName": "Κωνσταντινίδης Άγγελος",
+    "deadline": new Date("2025-09-30T00:00:00.000Z"),
+    "status": "Ενεργό",
+    "createdAt": new Date("2024-07-10T11:35:00.000Z")
+  },
+  {
+    "title": "Ενεργειακή αναβάθμιση κατοικίας Καψίδου",
+    "description": "Αντικατάσταση κουφωμάτων & τοποθέτηση ηλιακού.",
+    "applicationNumber": "81-028588",
+    "ownerName": "Καψίδου Δέσποινα",
+    "deadline": new Date("2023-11-20T00:00:00.000Z"),
+    "status": "Ολοκληρωμένο",
+    "createdAt": new Date("2023-10-12T13:10:00.000Z")
+  },
+  {
+    "title": "Ανακαίνιση διαμερίσματος PRIMASUN I.K.E.",
+    "description": "Ενεργειακή αναβάθμιση πολυκατοικίας.",
+    "applicationNumber": "81-082235",
+    "ownerName": "PRIMASUN MONOPROSOPI I.K.E.",
+    "deadline": new Date("2024-02-28T00:00:00.000Z"),
+    "status": "Ενεργό",
+    "createdAt": new Date("2024-01-18T10:10:00.000Z")
+  },
+  {
+    "title": "Ανακαίνιση κατοικίας Ανατολή Καραγιάννη",
+    "description": "",
+    "applicationNumber": "81-058764",
+    "ownerName": "Ανατολή Εύα Καραγιάννη",
+    "deadline": new Date("2025-09-30T00:00:00.000Z"),
+    "status": "Προσφορά",
+    "createdAt": new Date("2024-07-01T09:00:00.000Z")
+  }
 ];
+
+const ownerNameToContactDataMap = contactsData.reduce((acc, contact) => {
+    const name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.companyName;
+    if (name) {
+        acc[name] = contact;
+    }
+    return acc;
+}, {} as Record<string, typeof contactsData[0]>);
+
 
 /**
  * Hook που εκτελείται μία φορά για να ελέγξει και να εισάγει αρχικά δεδομένα (seeding).
@@ -138,9 +173,9 @@ export function useSeedCustomLists() {
                     });
                 });
 
-                // 2. Seeding Επαφών
+                // 2. Seeding Επαφών και συλλογή των IDs τους
                 console.log("Seeding contacts with production data...");
-                let createdContacts: { id: string; name: string; }[] = [];
+                const contactNameToIdMap = new Map<string, string>();
                 contactsData.forEach(contactData => {
                     const contactDocRef = doc(collection(db, "tsia-contacts"));
                     const { createdAt, ...rest } = contactData;
@@ -149,25 +184,24 @@ export function useSeedCustomLists() {
                         createdAt: new Date(createdAt)
                     });
                     const fullName = [contactData.firstName, contactData.lastName].filter(Boolean).join(' ') || contactData.companyName;
-                    createdContacts.push({ id: contactDocRef.id, name: fullName as string });
+                    if(fullName) {
+                        contactNameToIdMap.set(fullName, contactDocRef.id);
+                    }
                 });
 
-                // 3. Seeding Έργων
-                if (createdContacts.length > 0) {
-                    console.log("Seeding projects...");
-                    projectsData.forEach((proj, index) => {
-                        const ownerContact = createdContacts[index % createdContacts.length];
-                        const projectDocRef = doc(collection(db, "tsia-projects"));
-                        batch.set(projectDocRef, {
-                            ...proj,
-                            ownerId: ownerContact.id,
-                            ownerName: ownerContact.name,
-                            applicationNumber: `ΕΞ-${2024 - (index % 3)}-${String(1000 + index).padStart(4, '0')}`,
-                            description: `Περιγραφή για το έργο: ${proj.title}`,
-                            createdAt: new Date(new Date().getTime() - (index * 1000 * 60 * 60 * 24 * 7)) // Πηγαίνει πίσω κατά 1 εβδομάδα για κάθε έργο
-                        });
+                // 3. Seeding Έργων, συνδέοντάς τα με τις επαφές
+                console.log("Seeding projects...");
+                projectsData.forEach((proj) => {
+                    const projectDocRef = doc(collection(db, "tsia-projects"));
+                    
+                    // Βρίσκουμε το ID του ιδιοκτήτη από το map που δημιουργήσαμε
+                    const ownerId = contactNameToIdMap.get(proj.ownerName) || null;
+
+                    batch.set(projectDocRef, {
+                        ...proj,
+                        ownerId: ownerId,
                     });
-                }
+                });
                 
                 // Execute all writes
                 await batch.commit();
@@ -199,5 +233,3 @@ export function useSeedCustomLists() {
 
     return { seeding, error };
 }
-
-    
