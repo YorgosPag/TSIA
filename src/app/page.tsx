@@ -25,11 +25,11 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
       const fetchedEntries = snapshot.docs.map((doc) => ({
-        ...doc.data(),
+        ...(doc.data() as { name: string }),
         id: doc.id,
         isEditing: false,
         editedName: doc.data().name,
-      } as Omit<Entry, 'name'> & { name: string }));
+      }));
       setEntries(fetchedEntries);
     });
 
@@ -65,6 +65,7 @@ export default function Home() {
     
     const entryDoc = doc(db, "tsia-entries", id);
     await updateDoc(entryDoc, { name: entryToUpdate.editedName });
+    // No need to set isEditing to false here, the onSnapshot listener will handle it
   };
   
   const handleDeleteClick = async (id: string) => {
