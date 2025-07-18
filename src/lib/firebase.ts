@@ -13,14 +13,16 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 export function configIsValid(): boolean {
+    // This function now robustly checks if the essential config values are present and not placeholders.
     return !!(
       firebaseConfig.apiKey &&
       firebaseConfig.projectId &&
-      firebaseConfig.apiKey !== 'YOUR_API_KEY' && 
-      firebaseConfig.projectId !== 'YOUR_PROJECT_ID'
+      !firebaseConfig.apiKey.startsWith('YOUR_') &&
+      !firebaseConfig.projectId.startsWith('YOUR_')
     );
 }
 
+// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 

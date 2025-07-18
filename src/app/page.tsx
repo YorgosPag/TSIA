@@ -8,23 +8,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, Trash2, Edit, Save, XCircle, UserPlus, BookUser } from 'lucide-react';
+import { TriangleAlert, Trash2, Edit, Save, XCircle, UserPlus, BookUser, Home, Phone, Mail } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
-interface Entry {
+interface Contact {
   id: string;
   name: string;
+  address: string;
+  phone: string;
+  email: string;
   createdAt: any;
 }
 
+const initialContactState = {
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+};
+
 export default function Home() {
-  const [name, setName] = useState('');
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+  const [newContact, setNewContact] = useState(initialContactState);
+  const [entries, setEntries] = useState<Contact[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingEntry, setEditingEntry] = useState<Contact | null>(null);
 
   useEffect(() => {
     if (!configIsValid()) {
@@ -42,7 +53,7 @@ export default function Home() {
         const fetchedEntries = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        } as Entry));
+        } as Contact));
 
         setEntries(fetchedEntries);
         if (selectedEntry) {
@@ -73,48 +84,51 @@ export default function Home() {
     }
   }, [selectedEntry?.id]);
 
+  const handleNewContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+      setNewContact(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleAddClick = async () => {
-    if (name.trim()) {
+    if (newContact.name.trim()) {
       try {
         setError(null);
         const entriesCollectionRef = collection(db, "tsia-contacts");
         await addDoc(entriesCollectionRef, { 
-          name: name,
+          ...newContact,
           createdAt: serverTimestamp() 
         });
-        setName('');
+        setNewContact(initialContactState);
       } catch (e) {
         console.error("Error adding document: ", e);
         setError("Αποτυχία προσθήκης στη βάση δεδομένων.");
       }
     }
   };
-  
-  const handleAddKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddClick();
-    }
-  };
 
-  const handleEditClick = (entry: Entry) => {
-    setEditingEntryId(entry.id);
-    setEditingName(entry.name);
+  const handleEditClick = (entry: Contact) => {
+    setEditingEntry({ ...entry });
   };
 
   const handleCancelEdit = () => {
-    setEditingEntryId(null);
-    setEditingName('');
+    setEditingEntry(null);
+  };
+  
+  const handleEditingContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (editingEntry) {
+        const { name, value } = e.target;
+        setEditingEntry(prev => prev ? ({ ...prev, [name]: value }) : null);
+      }
   };
 
   const handleSaveClick = async (id: string) => {
-    if (editingName.trim()) {
+    if (editingEntry && editingEntry.name.trim()) {
       try {
         setError(null);
+        const { id: entryId, createdAt, ...dataToUpdate } = editingEntry;
         const entryDocRef = doc(db, "tsia-contacts", id);
-        await updateDoc(entryDocRef, { 
-            name: editingName
-        });
-        handleCancelEdit();
+        await updateDoc(entryDocRef, dataToUpdate);
+        setEditingEntry(null);
       } catch (e) {
         console.error("Error updating document: ", e);
         setError("Αποτυχία ενημέρωσης στη βάση δεδομένων.");
@@ -136,8 +150,8 @@ export default function Home() {
     }
   };
 
-  const handleSelectEntry = (entry: Entry) => {
-    if(editingEntryId !== entry.id) {
+  const handleSelectEntry = (entry: Contact) => {
+    if(editingEntry?.id !== entry.id) {
         setSelectedEntry(entry);
     }
   }
@@ -146,7 +160,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col p-4">
       <div className="flex w-full items-center justify-between pb-4">
           <SidebarTrigger />
-          <h1 className="text-2xl font-semibold flex-grow text-center">Καταχωρήσεις</h1>
+          <h1 className="text-2xl font-semibold flex-grow text-center">Επαφές</h1>
       </div>
        { error && (
            <Alert variant="destructive" className="mb-4">
@@ -162,50 +176,67 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <UserPlus />
-                        Νέα Καταχώρηση
+                        Νέα Επαφή
                     </CardTitle>
-                    <CardDescription>Προσθέστε μια νέα καταχώρηση.</CardDescription>
+                    <CardDescription>Προσθέστε μια νέα επαφή με τα στοιχεία της.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Input
-                        type="text"
-                        placeholder="Όνομα καταχώρησης"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        onKeyDown={handleAddKeyDown}
-                    />
-                    <Button onClick={handleAddClick} disabled={!name.trim()} className="w-full">
-                        Προσθήκη Καταχώρησης
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Ονοματεπώνυμο</Label>
+                        <Input id="name" name="name" placeholder="π.χ. Γιάννης Παπαδόπουλος" value={newContact.name} onChange={handleNewContactChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="address">Διεύθυνση</Label>
+                        <Textarea id="address" name="address" placeholder="π.χ. Αριστοτέλους 1, Αθήνα" value={newContact.address} onChange={handleNewContactChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="phone">Τηλέφωνο</Label>
+                        <Input id="phone" name="phone" type="tel" placeholder="π.χ. 2101234567" value={newContact.phone} onChange={handleNewContactChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" name="email" type="email" placeholder="π.χ. y.papadopoulos@email.com" value={newContact.email} onChange={handleNewContactChange} />
+                    </div>
+                    <Button onClick={handleAddClick} disabled={!newContact.name.trim()} className="w-full">
+                        Προσθήκη Επαφής
                     </Button>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Οι Καταχωρήσεις μου</CardTitle>
+                    <CardTitle>Οι Επαφές μου</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                    <p className="text-center text-muted-foreground">Φόρτωση καταχωρήσεων...</p>
+                    <p className="text-center text-muted-foreground">Φόρτωση επαφών...</p>
                     ) : entries.length === 0 ? (
-                    <p className="text-center text-muted-foreground italic">{ error ? 'Η σύνδεση απέτυχε. Ελέγξτε τις ρυθμίσεις.' : 'Δεν υπάρχει καμία καταχώρηση.'}</p>
+                    <p className="text-center text-muted-foreground italic">{ error ? 'Η σύνδεση απέτυχε. Ελέγξτε τις ρυθμίσεις.' : 'Δεν υπάρχει καμία επαφή.'}</p>
                     ) : (
                     <ul className="space-y-2">
                         {entries.map((entry) => (
-                        <li key={entry.id} className={`rounded-md border p-2 transition-colors cursor-pointer hover:bg-muted ${selectedEntry?.id === entry.id ? 'bg-accent text-accent-foreground' : ''}`}
+                        <li key={entry.id} className={`rounded-md border p-3 transition-colors cursor-pointer hover:bg-muted ${selectedEntry?.id === entry.id && !editingEntry ? 'bg-accent text-accent-foreground' : ''}`}
                             onClick={() => handleSelectEntry(entry)}
                         >
-                            {editingEntryId === entry.id ? (
-                            <div className="space-y-2">
-                                <Input
-                                    type="text"
-                                    value={editingName}
-                                    onChange={(e) => setEditingName(e.target.value)}
-                                    className="flex-grow"
-                                    autoFocus
-                                    onClick={(e) => e.stopPropagation()}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSaveClick(entry.id)}
-                                />
+                            {editingEntry?.id === entry.id ? (
+                            <div className="space-y-3">
+                                <h3 className="font-semibold text-lg mb-2">Επεξεργασία Επαφής</h3>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`edit-name-${entry.id}`}>Ονοματεπώνυμο</Label>
+                                    <Input id={`edit-name-${entry.id}`} name="name" value={editingEntry.name} onChange={handleEditingContactChange} autoFocus/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`edit-address-${entry.id}`}>Διεύθυνση</Label>
+                                    <Textarea id={`edit-address-${entry.id}`} name="address" value={editingEntry.address} onChange={handleEditingContactChange} />
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor={`edit-phone-${entry.id}`}>Τηλέφωνο</Label>
+                                    <Input id={`edit-phone-${entry.id}`} name="phone" value={editingEntry.phone} onChange={handleEditingContactChange} />
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor={`edit-email-${entry.id}`}>Email</Label>
+                                    <Input id={`edit-email-${entry.id}`} name="email" value={editingEntry.email} onChange={handleEditingContactChange} />
+                                </div>
                                 <div className="flex items-center justify-end">
                                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSaveClick(entry.id);}}><Save className="h-4 w-4 text-green-600" /></Button>
                                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleCancelEdit();}}><XCircle className="h-4 w-4 text-gray-500" /></Button>
@@ -234,25 +265,53 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <BookUser />
-                         Στοιχεία Καταχώρησης
+                         Στοιχεία Επαφής
                     </CardTitle>
-                    <CardDescription>Επιλέξτε μια καταχώρηση από τη λίστα για να δείτε τα στοιχεία της εδώ.</CardDescription>
+                    <CardDescription>Επιλέξτε μια επαφή από τη λίστα για να δείτε τα στοιχεία της εδώ.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {selectedEntry ? (
-                         <div className="space-y-4">
+                         <div className="space-y-6">
                             <div>
-                                <h3 className="text-sm font-medium text-muted-foreground">Όνομα</h3>
-                                <p className="text-xl font-semibold">{selectedEntry.name}</p>
+                                <h3 className="text-lg font-bold text-primary">{selectedEntry.name}</h3>
                             </div>
-                             <div>
+                            <div className="space-y-4">
+                                {selectedEntry.address && (
+                                    <div className="flex items-start gap-3">
+                                        <Home className="h-5 w-5 text-muted-foreground mt-1" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-muted-foreground">Διεύθυνση</h4>
+                                            <p className="text-base whitespace-pre-wrap">{selectedEntry.address}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedEntry.phone && (
+                                    <div className="flex items-start gap-3">
+                                        <Phone className="h-5 w-5 text-muted-foreground mt-1" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-muted-foreground">Τηλέφωνο</h4>
+                                            <p className="text-base">{selectedEntry.phone}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedEntry.email && (
+                                    <div className="flex items-start gap-3">
+                                        <Mail className="h-5 w-5 text-muted-foreground mt-1" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+                                            <p className="text-base">{selectedEntry.email}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                             <div className="pt-4 border-t mt-4">
                                 <h3 className="text-sm font-medium text-muted-foreground">ID Εγγραφής</h3>
                                 <p className="text-xs text-muted-foreground">{selectedEntry.id}</p>
                             </div>
                          </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">{ error ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί καταχώρηση'}</p>
+                            <p className="text-muted-foreground">{ error ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί επαφή'}</p>
                         </div>
                     )}
                 </CardContent>

@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import {
@@ -49,7 +50,7 @@ export default function RootLayout({
                   <SidebarMenuItem>
                     <SidebarMenuButton href="/" isActive>
                       <BookUser />
-                      Καταχωρήσεις
+                      Επαφές
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -63,5 +64,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
