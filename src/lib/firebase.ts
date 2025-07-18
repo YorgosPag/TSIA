@@ -17,23 +17,14 @@ const firebaseConfig: FirebaseOptions = {
 export function configIsValid(): boolean {
     return !!(
       firebaseConfig.apiKey &&
-      firebaseConfig.projectId
+      firebaseConfig.projectId &&
+      firebaseConfig.apiKey !== 'YOUR_API_KEY' && 
+      firebaseConfig.projectId !== 'YOUR_PROJECT_ID'
     );
 }
 
 // Initialize Firebase App
-let app;
-if (configIsValid()) {
-    // Initialize Firebase only if it hasn't been initialized yet
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-}
-
-// Initialize Firestore
-// Assign db to null if the app couldn't be initialized.
-const db = app ? getFirestore(app) : null;
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
 
 export { app, db };

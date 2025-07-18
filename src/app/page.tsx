@@ -28,7 +28,6 @@ export default function Home() {
   const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
 
   useEffect(() => {
-    // Check config validity on the client side
     const configured = configIsValid();
     setIsFirebaseConfigured(configured);
 
@@ -38,16 +37,8 @@ export default function Home() {
         return;
     }
 
-    // Ensure db is not null before proceeding
-    if (!db) {
-        setError("Η αρχικοποίηση της βάσης δεδομένων απέτυχε.");
-        setLoading(false);
-        return;
-    }
-
     setLoading(true);
     const entriesCollectionRef = collection(db, "tsia-entries");
-    // Removed orderBy to work with basic Firestore queries in a static export setup
     const q = query(entriesCollectionRef);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -56,7 +47,6 @@ export default function Home() {
         ...doc.data(),
       } as Entry));
       
-      // Sort entries by createdAt on the client-side
       fetchedEntries.sort((a, b) => {
           const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
           const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
@@ -88,10 +78,10 @@ export default function Home() {
     return () => {
         unsubscribe();
     };
-  }, [selectedEntry?.id]);
+  }, [selectedEntry?.id, isFirebaseConfigured]); // Added isFirebaseConfigured dependency
 
   const handleAddClick = async () => {
-    if (name.trim() && db) {
+    if (name.trim() && isFirebaseConfigured) {
       try {
         setError(null);
         const entriesCollectionRef = collection(db, "tsia-entries");
@@ -124,7 +114,7 @@ export default function Home() {
   };
 
   const handleSaveClick = async (id: string) => {
-    if (editingName.trim() && db) {
+    if (editingName.trim() && isFirebaseConfigured) {
       try {
         setError(null);
         const entryDocRef = doc(db, "tsia-entries", id);
@@ -140,7 +130,7 @@ export default function Home() {
   };
   
   const handleDeleteClick = async (id: string) => {
-    if (!db) return;
+    if (!isFirebaseConfigured) return;
     try {
       setError(null);
       if(selectedEntry?.id === id) {
