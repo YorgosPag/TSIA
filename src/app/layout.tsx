@@ -11,6 +11,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Users } from 'lucide-react';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',
@@ -38,23 +39,26 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <SidebarProvider>
-          <Sidebar>
-            <SidebarHeader>
-              <h2 className="text-lg font-semibold">Εφαρμογή</h2>
-            </SidebarHeader>
-            <SidebarContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton href="/" isActive>
-                    <Users />
-                    Επαφές
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarContent>
-          </Sidebar>
-          <SidebarInset>{children}</SidebarInset>
+          <div className="flex">
+            <Sidebar>
+              <SidebarHeader>
+                <h2 className="text-lg font-semibold">Εφαρμογή</h2>
+              </SidebarHeader>
+              <SidebarContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton href="/" isActive>
+                      <Users />
+                      Επαφές
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarContent>
+            </Sidebar>
+            <SidebarInset>{children}</SidebarInset>
+          </div>
         </SidebarProvider>
+        <Toaster />
       </body>
     </html>
   );
