@@ -79,7 +79,7 @@ export default function RootLayout({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                    <SidebarMenuItem>
-                    <SidebarMenuButton href="#">
+                    <SidebarMenuButton href="/reports">
                       <FileText />
                       Αποτυπώσεις
                     </SidebarMenuButton>
