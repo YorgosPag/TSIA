@@ -2,14 +2,15 @@
 "use client";
 
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getFirestore } from 'firebase/firestore';
-import { getApp, getApps } from 'firebase/app';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { getApp, getApps } from 'firebase/app';
 
 interface Entry {
   id: string;
@@ -18,27 +19,31 @@ interface Entry {
   editedName: string;
 }
 
-// Function to check if Firebase is configured
 const isFirebaseConfigured = () => {
-  if (typeof window === "undefined") return true; // Don't run on server
+  if (typeof window === "undefined") {
+    return false;
+  }
   const apps = getApps();
-  if (!apps.length) return false;
+  if (!apps.length) {
+    return false;
+  }
   const config = getApp().options;
-  return config && config.apiKey && !config.apiKey.startsWith("TODO");
+  return config && config.apiKey && !config.apiKey.startsWith("TODO:");
 };
 
 
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [db, setDb] = useState<any>(null);
-  const [isConfigured, setIsConfigured] = useState(isFirebaseConfigured());
+  const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
-    if (isConfigured) {
-      const firestoreDb = getFirestore(getApp());
-      setDb(firestoreDb);
-      const entriesCollectionRef = collection(firestoreDb, "tsia-entries");
+    // Check configuration only on the client-side
+    const configured = isFirebaseConfigured();
+    setIsConfigured(configured);
+
+    if (configured) {
+      const entriesCollectionRef = collection(db, "tsia-entries");
       const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
         const fetchedEntries = snapshot.docs.map((doc) => ({
           ...(doc.data() as { name: string }),
@@ -51,7 +56,7 @@ export default function Home() {
 
       return () => unsubscribe();
     }
-  }, [isConfigured]);
+  }, []);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
