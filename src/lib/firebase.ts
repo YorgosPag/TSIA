@@ -13,20 +13,18 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Function to check if the config is valid
+// Function to check if the essential config values are provided
 export function configIsValid(): boolean {
-    const conf = firebaseConfig;
-    return !!(conf.apiKey &&
-           conf.authDomain &&
-           conf.projectId &&
-           conf.storageBucket &&
-           conf.messagingSenderId &&
-           conf.appId);
+    return !!(
+      firebaseConfig.apiKey &&
+      firebaseConfig.projectId
+    );
 }
 
+// Initialize Firebase App
 let app;
-// Initialize Firebase only if the config is valid
 if (configIsValid()) {
+    // Initialize Firebase only if it hasn't been initialized yet
     if (!getApps().length) {
         app = initializeApp(firebaseConfig);
     } else {
@@ -34,6 +32,8 @@ if (configIsValid()) {
     }
 }
 
+// Initialize Firestore
+// Assign db to null if the app couldn't be initialized.
 const db = app ? getFirestore(app) : null;
 
 export { app, db };
