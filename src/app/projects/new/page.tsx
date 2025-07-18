@@ -170,5 +170,3 @@ export default function NewProjectPage() {
         </main>
     );
 }
-
-    

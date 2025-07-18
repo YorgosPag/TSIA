@@ -46,13 +46,13 @@ export function MainLayout({
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton href="#">
+                <SidebarMenuButton href="/">
                   <BarChart />
                   Πίνακας Ελέγχου
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/">
+                <SidebarMenuButton href="/projects">
                    <GanttChart />Λίστα Έργων
                 </SidebarMenuButton>
               </SidebarMenuItem>
