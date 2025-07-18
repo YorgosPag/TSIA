@@ -104,23 +104,23 @@ export default function Home() {
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-headline">TSIA</CardTitle>
           <CardDescription>
-            Type a name and click "Add" to add it to the list.
+            Πληκτρολογήστε ένα όνομα και κάντε κλικ στο "Προσθήκη" για να το προσθέσετε στη λίστα.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Όνομα</Label>
               <div className="flex gap-2">
                 <Input
                   id="name"
-                  placeholder="What should we call you?"
+                  placeholder="Πώς να σας αποκαλούμε;"
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   autoComplete="off"
                 />
-                <Button onClick={handleAddClick}>Add</Button>
+                <Button onClick={handleAddClick}>Προσθήκη</Button>
               </div>
             </div>
 
@@ -138,7 +138,7 @@ export default function Home() {
                           className="text-foreground"
                           autoFocus
                         />
-                        <Button onClick={() => handleSaveClick(entry.id)}>Save</Button>
+                        <Button onClick={() => handleSaveClick(entry.id)}>Αποθήκευση</Button>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between gap-4">
