@@ -39,7 +39,7 @@ export default function Home() {
       }
 
       setLoading(true);
-      const entriesCollectionRef = collection(db, "tsia-contatti");
+      const entriesCollectionRef = collection(db, "tsia-contacts");
       const q = query(entriesCollectionRef);
       
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -87,7 +87,7 @@ export default function Home() {
     if (name.trim() && isFirebaseConfigured) {
       try {
         setError(null);
-        const entriesCollectionRef = collection(db, "tsia-contatti");
+        const entriesCollectionRef = collection(db, "tsia-contacts");
         await addDoc(entriesCollectionRef, { 
           name: name,
           createdAt: serverTimestamp() 
@@ -120,7 +120,7 @@ export default function Home() {
     if (editingName.trim() && isFirebaseConfigured) {
       try {
         setError(null);
-        const entryDocRef = doc(db, "tsia-contatti", id);
+        const entryDocRef = doc(db, "tsia-contacts", id);
         await updateDoc(entryDocRef, { 
             name: editingName
         });
@@ -139,7 +139,7 @@ export default function Home() {
       if(selectedEntry?.id === id) {
         setSelectedEntry(null);
       }
-      const entryDocRef = doc(db, "tsia-contatti", id);
+      const entryDocRef = doc(db, "tsia-contacts", id);
       await deleteDoc(entryDocRef);
     } catch (e) {
       console.error("Error deleting document: ", e);
