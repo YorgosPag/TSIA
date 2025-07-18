@@ -25,30 +25,36 @@ export default function Home() {
   const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
-    const checkConfig = () => {
+    // This check runs only on the client-side, avoiding hydration errors.
+    const checkFirebaseConfig = () => {
       try {
         const apps = getApps();
-        if (!apps.length) return false;
-        const config = getApp().options;
-        return !!(config && config.apiKey && !config.apiKey.includes("AIzaSyC3c-3X8P0o_m7Av6iuixd673ddtDM4d4s"));
+        if (apps.length > 0) {
+          const config = getApp().options;
+          // A simple check to see if the default placeholder config is still being used.
+          if (config && config.apiKey && !config.apiKey.startsWith("AIzaSyC3c-3X8P0o")) {
+            return true;
+          }
+        }
+        return false;
       } catch {
         return false;
       }
     };
 
-    const configured = checkConfig();
+    const configured = checkFirebaseConfig();
     setIsConfigured(configured);
 
     if (configured) {
       const entriesCollectionRef = collection(db, "tsia-entries");
       const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
         const fetchedEntries = snapshot.docs.map((doc) => ({
-          ...(doc.data() as { name: string }),
           id: doc.id,
-        }));
+          ...doc.data(),
+        } as Entry));
         setEntries(fetchedEntries);
       });
-
+      // Cleanup subscription on component unmount
       return () => unsubscribe();
     }
   }, []);
@@ -58,10 +64,14 @@ export default function Home() {
   };
 
   const handleAddClick = async () => {
-    if (inputValue.trim() && db) {
+    if (inputValue.trim() && isConfigured) {
       const entriesCollectionRef = collection(db, "tsia-entries");
-      await addDoc(entriesCollectionRef, { name: inputValue });
-      setInputValue('');
+      try {
+        await addDoc(entriesCollectionRef, { name: inputValue });
+        setInputValue(''); // Clear input after successful add
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
     }
   };
 
@@ -82,18 +92,25 @@ export default function Home() {
   }
 
   const handleSaveClick = async (id: string) => {
-    if (!editingName.trim() || !db) return;
+    if (!editingName.trim() || !isConfigured) return;
 
-    const entryDoc = doc(db, "tsia-entries", id);
-    await updateDoc(entryDoc, { name: editingName });
-    
-    handleCancelEdit();
+    const entryDocRef = doc(db, "tsia-entries", id);
+    try {
+      await updateDoc(entryDocRef, { name: editingName });
+      handleCancelEdit(); // Exit editing mode on successful save
+    } catch (error) {
+      console.error("Error updating document: ", error);
+    }
   };
 
   const handleDeleteClick = async (id: string) => {
-    if (!db) return;
-    const entryDoc = doc(db, "tsia-entries", id);
-    await deleteDoc(entryDoc);
+    if (!isConfigured) return;
+    const entryDocRef = doc(db, "tsia-entries", id);
+    try {
+      await deleteDoc(entryDocRef);
+    } catch (error) {
+      console.error("Error deleting document: ", error);
+    }
   };
 
   const handleEditKeyDown = (event: KeyboardEvent<HTMLInputElement>, id: string) => {
@@ -161,9 +178,7 @@ export default function Home() {
                         </div>
                       ) : (
                         <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <p className="text-xl font-medium">{entry.name}</p>
-                          </div>
+                          <p className="text-xl font-medium">{entry.name}</p>
                           <div className="flex items-center">
                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(entry)} aria-label={`Επεξεργασία ${entry.name}`}>
                               <Pencil className="h-5 w-5" />
