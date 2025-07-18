@@ -2,27 +2,36 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration - ΑΝΤΙΚΑΤΑΣΤΗΣΤΕ ΜΕ ΤΑ ΔΙΚΑ ΣΑΣ ΣΤΟΙΧΕΙΑ
+// Read Firebase config from environment variables
 const firebaseConfig: FirebaseOptions = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Function to check if the config is still using placeholder values
+// Function to check if the config is valid
 export function configIsValid(): boolean {
-    return !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");
+    const conf = firebaseConfig;
+    return !!(conf.apiKey &&
+           conf.authDomain &&
+           conf.projectId &&
+           conf.storageBucket &&
+           conf.messagingSenderId &&
+           conf.appId);
 }
 
 let app;
-if (configIsValid() && !getApps().length) {
-    app = initializeApp(firebaseConfig);
-} else if(configIsValid()) {
-    app = getApp();
+// Initialize Firebase only if the config is valid
+if (configIsValid()) {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
 }
 
 const db = app ? getFirestore(app) : null;
