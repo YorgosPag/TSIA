@@ -2,13 +2,14 @@
 "use client";
 
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getFirestore } from 'firebase/firestore';
+import { getApp, getApps } from 'firebase/app';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
 
 interface Entry {
   id: string;
@@ -17,31 +18,48 @@ interface Entry {
   editedName: string;
 }
 
+// Function to check if Firebase is configured
+const isFirebaseConfigured = () => {
+  if (typeof window === "undefined") return true; // Don't run on server
+  const apps = getApps();
+  if (!apps.length) return false;
+  const config = getApp().options;
+  return config && config.apiKey && !config.apiKey.startsWith("TODO");
+};
+
+
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [entries, setEntries] = useState<Entry[]>([]);
-  const entriesCollectionRef = collection(db, "tsia-entries");
+  const [db, setDb] = useState<any>(null);
+  const [isConfigured, setIsConfigured] = useState(isFirebaseConfigured());
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
-      const fetchedEntries = snapshot.docs.map((doc) => ({
-        ...(doc.data() as { name: string }),
-        id: doc.id,
-        isEditing: false,
-        editedName: doc.data().name,
-      }));
-      setEntries(fetchedEntries);
-    });
+    if (isConfigured) {
+      const firestoreDb = getFirestore(getApp());
+      setDb(firestoreDb);
+      const entriesCollectionRef = collection(firestoreDb, "tsia-entries");
+      const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
+        const fetchedEntries = snapshot.docs.map((doc) => ({
+          ...(doc.data() as { name: string }),
+          id: doc.id,
+          isEditing: false,
+          editedName: doc.data().name,
+        }));
+        setEntries(fetchedEntries);
+      });
 
-    return () => unsubscribe();
-  }, []);
+      return () => unsubscribe();
+    }
+  }, [isConfigured]);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
 
   const handleAddClick = async () => {
-    if (inputValue.trim()) {
+    if (inputValue.trim() && db) {
+      const entriesCollectionRef = collection(db, "tsia-entries");
       await addDoc(entriesCollectionRef, { name: inputValue });
       setInputValue('');
     }
@@ -61,14 +79,15 @@ export default function Home() {
 
   const handleSaveClick = async (id: string) => {
     const entryToUpdate = entries.find(entry => entry.id === id);
-    if (!entryToUpdate || !entryToUpdate.editedName.trim()) return;
+    if (!entryToUpdate || !entryToUpdate.editedName.trim() || !db) return;
 
     const entryDoc = doc(db, "tsia-entries", id);
     await updateDoc(entryDoc, { name: entryToUpdate.editedName });
-    // Η κατάσταση isEditing θα ενημερωθεί αυτόματα από τον onSnapshot listener
+    // The onSnapshot listener will automatically update the UI
   };
-  
+
   const handleDeleteClick = async (id: string) => {
+    if (!db) return;
     const entryDoc = doc(db, "tsia-entries", id);
     await deleteDoc(entryDoc);
   };
@@ -95,59 +114,71 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Όνομα</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="name"
-                  placeholder="Προσθέστε ένα νέο όνομα"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  autoComplete="off"
-                />
-                <Button onClick={handleAddClick}>Προσθήκη</Button>
+          {!isConfigured ? (
+             <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Η σύνδεση με το Firebase απέτυχε!</AlertTitle>
+                <AlertDescription>
+                  Παρακαλώ βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο{' '}
+                  <code className="font-mono text-sm bg-red-100 p-1 rounded">src/lib/firebase.ts</code>.
+                </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Όνομα</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="name"
+                    placeholder="Προσθέστε ένα νέο όνομα"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    autoComplete="off"
+                    disabled={!isConfigured}
+                  />
+                  <Button onClick={handleAddClick} disabled={!isConfigured}>Προσθήκη</Button>
+                </div>
               </div>
-            </div>
 
-            {entries.length > 0 && (
-              <div className="mt-6 space-y-3">
-                <h3 className="text-lg font-semibold text-center">Αποθηκευμένα Ονόματα</h3>
-                {entries.map((entry) => (
-                  <div key={entry.id} className="rounded-lg bg-card border p-4 transition-all duration-300">
-                    {entry.isEditing ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="text"
-                          value={entry.editedName}
-                          onChange={(e) => handleEditInputChange(entry.id, e.target.value)}
-                          onKeyDown={(e) => handleEditKeyDown(e, entry.id)}
-                          className="bg-input"
-                          autoFocus
-                        />
-                        <Button onClick={() => handleSaveClick(entry.id)}>Αποθήκευση</Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                           <p className="text-xl font-medium">{entry.name}</p>
+              {entries.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-lg font-semibold text-center">Αποθηκευμένα Ονόματα</h3>
+                  {entries.map((entry) => (
+                    <div key={entry.id} className="rounded-lg bg-card border p-4 transition-all duration-300">
+                      {entry.isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="text"
+                            value={entry.editedName}
+                            onChange={(e) => handleEditInputChange(entry.id, e.target.value)}
+                            onKeyDown={(e) => handleEditKeyDown(e, entry.id)}
+                            className="bg-input"
+                            autoFocus
+                          />
+                          <Button onClick={() => handleSaveClick(entry.id)}>Αποθήκευση</Button>
                         </div>
-                        <div className="flex items-center">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(entry.id)} aria-label={`Επεξεργασία ${entry.name}`}>
-                            <Pencil className="h-5 w-5" />
-                          </Button>
-                           <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(entry.id)} aria-label={`Διαγραφή ${entry.name}`}>
-                            <Trash2 className="h-5 w-5 text-destructive" />
-                          </Button>
+                      ) : (
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-xl font-medium">{entry.name}</p>
+                          </div>
+                          <div className="flex items-center">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(entry.id)} aria-label={`Επεξεργασία ${entry.name}`}>
+                              <Pencil className="h-5 w-5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(entry.id)} aria-label={`Διαγραφή ${entry.name}`}>
+                              <Trash2 className="h-5 w-5 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
