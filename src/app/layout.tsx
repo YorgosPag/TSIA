@@ -69,9 +69,8 @@ export default function RootLayout({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton href="#">
-                      <GanttChart />
-                      Λίστα Έργων
+                    <SidebarMenuButton asChild>
+                       <Link href="/projects"><GanttChart />Λίστα Έργων</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                    <SidebarMenuItem>
@@ -130,3 +129,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
