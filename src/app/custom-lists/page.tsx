@@ -345,41 +345,40 @@ export default function CustomListsPage() {
                 ) : (
                 <Accordion type="multiple" className="w-full space-y-2">
                     {filteredLists.map((list) => (
-                    <AccordionItem value={list.id} key={list.id} className="bg-card/50 rounded-lg px-4 border">
-                        <AccordionTrigger>
-                            <div className="flex items-center justify-between w-full">
-                                {editingListId === list.id ? (
-                                    <div className="flex-1 mr-4">
-                                        <Input value={editingListTitle} onChange={e => setEditingListTitle(e.target.value)} className="h-8 mb-1" onClick={e => e.stopPropagation()} />
-                                        <Input value={editingListDescription} onChange={e => setEditingListDescription(e.target.value)} className="h-8 text-xs" placeholder="Περιγραφή" onClick={e => e.stopPropagation()} />
-                                    </div>
-                                ) : (
-                                    <div className="text-left">
+                    <AccordionItem value={list.id} key={list.id} className="bg-card/50 rounded-lg border">
+                         <div className="flex items-center justify-between w-full px-4 py-1">
+                            {editingListId === list.id ? (
+                                <div className="flex-1 mr-4 py-3">
+                                    <Input value={editingListTitle} onChange={e => setEditingListTitle(e.target.value)} className="h-8 mb-1" />
+                                    <Input value={editingListDescription} onChange={e => setEditingListDescription(e.target.value)} className="h-8 text-xs" placeholder="Περιγραφή" />
+                                </div>
+                            ) : (
+                                <AccordionTrigger className="flex-1 text-left py-3">
+                                    <div>
                                         <h3 className="font-semibold text-base">{list.title}</h3>
                                         {list.description && <p className="text-sm text-muted-foreground">{list.description}</p>}
                                     </div>
+                                </AccordionTrigger>
+                            )}
+                            <div className="flex items-center gap-2 pl-4">
+                                {editingListId === list.id ? (
+                                    <>
+                                        <Button size="sm" onClick={handleUpdateList}>Αποθήκευση</Button>
+                                        <Button size="sm" variant="ghost" onClick={handleCancelEditingList}>Ακύρωση</Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleStartEditingList(list)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setListToDelete(list)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </>
                                 )}
-
-                                <div className="flex items-center gap-2 mr-2">
-                                     {editingListId === list.id ? (
-                                        <>
-                                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleUpdateList(); }}>Αποθήκευση</Button>
-                                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleCancelEditingList(); }}>Ακύρωση</Button>
-                                        </>
-                                     ) : (
-                                        <>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleStartEditingList(list); }}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setListToDelete(list); }}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                     )}
-                                </div>
                             </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-2 pb-4">
+                        </div>
+                        <AccordionContent className="pt-2 pb-4 px-4">
                             <div className="flex gap-2 mb-4">
                                 <Input
                                     placeholder="Προσθήκη (μεμονωμένα ή με ';' για μαζική)..."

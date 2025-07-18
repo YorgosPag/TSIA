@@ -2,15 +2,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, Plus, Search, GanttChart, Edit, Trash2 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from "date-fns";
 import Link from 'next/link';
@@ -56,9 +54,8 @@ export default function ProjectsPage() {
         if (selectedProject) {
             const updatedSelected = fetchedProjects.find(p => p.id === selectedProject.id);
             if(updatedSelected) {
-                // Do nothing, already selected and data is fresh from snapshot
+                setSelectedProject(updatedSelected);
             } else {
-                // The previously selected project was deleted, select the first one if it exists
                 setSelectedProject(fetchedProjects.length > 0 ? fetchedProjects[0] : null);
             }
         } else if (fetchedProjects.length > 0) {
