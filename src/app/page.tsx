@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,18 +23,17 @@ export default function Home() {
   const entriesCollectionRef = collection(db, "tsia-entries");
 
   useEffect(() => {
-    const getEntries = async () => {
-      const data = await getDocs(entriesCollectionRef);
-      const fetchedEntries = data.docs.map((doc) => ({
+    const unsubscribe = onSnapshot(entriesCollectionRef, (snapshot) => {
+      const fetchedEntries = snapshot.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id,
         isEditing: false,
         editedName: doc.data().name,
       } as Omit<Entry, 'name'> & { name: string }));
       setEntries(fetchedEntries);
-    };
+    });
 
-    getEntries();
+    return () => unsubscribe();
   }, []);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -43,15 +42,7 @@ export default function Home() {
 
   const handleAddClick = async () => {
     if (inputValue.trim()) {
-      const newEntryData = { name: inputValue };
-      const docRef = await addDoc(entriesCollectionRef, newEntryData);
-      const newEntry: Entry = {
-        id: docRef.id,
-        name: inputValue,
-        isEditing: false,
-        editedName: inputValue,
-      };
-      setEntries([...entries, newEntry]);
+      await addDoc(entriesCollectionRef, { name: inputValue });
       setInputValue('');
     }
   };
@@ -64,7 +55,7 @@ export default function Home() {
 
   const handleEditClick = (id: string) => {
     setEntries(entries.map(entry =>
-      entry.id === id ? { ...entry, isEditing: true } : entry
+      entry.id === id ? { ...entry, isEditing: true } : { ...entry, isEditing: false }
     ));
   };
 
@@ -74,16 +65,11 @@ export default function Home() {
     
     const entryDoc = doc(db, "tsia-entries", id);
     await updateDoc(entryDoc, { name: entryToUpdate.editedName });
-
-    setEntries(entries.map(entry =>
-      entry.id === id ? { ...entry, name: entryToUpdate.editedName, isEditing: false } : entry
-    ));
   };
   
   const handleDeleteClick = async (id: string) => {
     const entryDoc = doc(db, "tsia-entries", id);
     await deleteDoc(entryDoc);
-    setEntries(entries.filter(entry => entry.id !== id));
   };
 
   const handleEditInputChange = (id: string, value: string) => {
