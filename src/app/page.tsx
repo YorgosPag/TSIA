@@ -1,7 +1,9 @@
 
 "use client";
 
-import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 
 interface Entry {
-  id: number;
+  id: string;
   name: string;
   isEditing: boolean;
   editedName: string;
@@ -18,22 +20,38 @@ interface Entry {
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [nextId, setNextId] = useState(1);
+  const entriesCollectionRef = collection(db, "tsia-entries");
+
+  useEffect(() => {
+    const getEntries = async () => {
+      const data = await getDocs(entriesCollectionRef);
+      const fetchedEntries = data.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+        isEditing: false,
+        editedName: doc.data().name,
+      } as Omit<Entry, 'name'> & { name: string }));
+      setEntries(fetchedEntries);
+    };
+
+    getEntries();
+  }, []);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
 
-  const handleAddClick = () => {
+  const handleAddClick = async () => {
     if (inputValue.trim()) {
+      const newEntryData = { name: inputValue };
+      const docRef = await addDoc(entriesCollectionRef, newEntryData);
       const newEntry: Entry = {
-        id: nextId,
+        id: docRef.id,
         name: inputValue,
         isEditing: false,
         editedName: inputValue,
       };
       setEntries([...entries, newEntry]);
-      setNextId(nextId + 1);
       setInputValue('');
     }
   };
@@ -44,29 +62,37 @@ export default function Home() {
     }
   };
 
-  const handleEditClick = (id: number) => {
+  const handleEditClick = (id: string) => {
     setEntries(entries.map(entry =>
       entry.id === id ? { ...entry, isEditing: true } : entry
     ));
   };
 
-  const handleSaveClick = (id: number) => {
+  const handleSaveClick = async (id: string) => {
+     const entryToUpdate = entries.find(entry => entry.id === id);
+    if (!entryToUpdate) return;
+    
+    const entryDoc = doc(db, "tsia-entries", id);
+    await updateDoc(entryDoc, { name: entryToUpdate.editedName });
+
     setEntries(entries.map(entry =>
-      entry.id === id ? { ...entry, name: entry.editedName, isEditing: false } : entry
+      entry.id === id ? { ...entry, name: entryToUpdate.editedName, isEditing: false } : entry
     ));
   };
   
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = async (id: string) => {
+    const entryDoc = doc(db, "tsia-entries", id);
+    await deleteDoc(entryDoc);
     setEntries(entries.filter(entry => entry.id !== id));
   };
 
-  const handleEditInputChange = (id: number, value: string) => {
+  const handleEditInputChange = (id: string, value: string) => {
     setEntries(entries.map(entry =>
       entry.id === id ? { ...entry, editedName: value } : entry
     ));
   };
 
-  const handleEditKeyDown = (event: KeyboardEvent<HTMLInputElement>, id: number) => {
+  const handleEditKeyDown = (event: KeyboardEvent<HTMLInputElement>, id: string) => {
     if (event.key === 'Enter') {
       handleSaveClick(id);
     }
