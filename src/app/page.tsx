@@ -125,7 +125,7 @@ export default function Home() {
       setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
     }
-  }, []);
+  }, [selectedContact]);
 
   const handleOpenDialog = (contact: Contact | null = null) => {
     setEditingContact(contact);
