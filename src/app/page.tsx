@@ -17,18 +17,6 @@ interface Entry {
   name: string;
 }
 
-const isFirebaseConfigured = () => {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  const apps = getApps();
-  if (!apps.length) {
-    return false;
-  }
-  const config = getApp().options;
-  return config && config.apiKey && !config.apiKey.startsWith("TODO:");
-};
-
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -37,8 +25,15 @@ export default function Home() {
   const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
-    // Check configuration only on the client-side
-    const configured = isFirebaseConfigured();
+    // Check configuration only on the client-side to prevent hydration errors
+    const checkConfig = () => {
+      const apps = getApps();
+      if (!apps.length) return false;
+      const config = getApp().options;
+      return !!(config && config.apiKey && !config.apiKey.startsWith("TODO:"));
+    };
+
+    const configured = checkConfig();
     setIsConfigured(configured);
 
     if (configured) {
@@ -67,7 +62,7 @@ export default function Home() {
     }
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const handleAddKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       handleAddClick();
     }
@@ -135,11 +130,11 @@ export default function Home() {
                     placeholder="Προσθέστε ένα νέο όνομα"
                     value={inputValue}
                     onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={handleAddKeyDown}
                     autoComplete="off"
                     disabled={!isConfigured}
                   />
-                  <Button onClick={handleAddClick} disabled={!isConfigured}>Προσθήκη</Button>
+                  <Button onClick={handleAddClick} disabled={!isConfigured || !inputValue.trim()}>Προσθήκη</Button>
                 </div>
               </div>
 
@@ -158,7 +153,7 @@ export default function Home() {
                             className="bg-input"
                             autoFocus
                           />
-                          <Button onClick={() => handleSaveClick(entry.id)}>Αποθήκευση</Button>
+                          <Button onClick={() => handleSaveClick(entry.id)} disabled={!editingName.trim()}>Αποθήκευση</Button>
                           <Button variant="ghost" onClick={handleCancelEdit}>Ακύρωση</Button>
                         </div>
                       ) : (
