@@ -7,6 +7,22 @@ import { db } from '@/lib/firebase';
 import { useToast } from '@/features/toast';
 import type { Project } from '../types';
 
+// Mock progress for demonstration
+const mockProgress = (project: Project): number => {
+  if (project.status === 'Ολοκληρωμένο') return 100;
+  if (project.status === 'Ακυρωμένο') return 0;
+   if (project.status === 'Προσφορά') return 0;
+  // create a stable random progress based on id
+  const hash = project.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return (hash % 85) + 15; // progress between 15 and 100
+}
+
+const mockCost = (project: Project): number => {
+    const hash = project.id.split('').reduce((acc, char) => acc + char.charCodeAt(0) * 1.5, 0);
+    return (hash % 20000) + 5000; // cost between 5000 and 25000
+}
+
+
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,10 +41,15 @@ export function useProjects() {
     const q = query(projectsCollectionRef, orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedProjects = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Project));
+      const fetchedProjects = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          const projectBase = { id: doc.id, ...data } as Project;
+          return {
+            ...projectBase,
+            progress: mockProgress(projectBase),
+            cost: mockCost(projectBase),
+          } as Project
+      });
 
       setProjects(fetchedProjects);
       setLoading(false);

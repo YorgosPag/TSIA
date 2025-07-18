@@ -1,33 +1,81 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { useProjects } from '@/features/projects/hooks/useProjects';
-import { ProjectList } from '@/features/projects/components/ProjectList';
-import { ProjectDetails } from '@/features/projects/components/ProjectDetails';
-import { ProjectHeader } from '@/features/projects/components/ProjectHeader';
+import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { ProjectDeleteDialog } from '@/features/projects/components/ProjectDeleteDialog';
-import { GanttChart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { GanttChart, Plus, Search, TriangleAlert } from 'lucide-react';
 import type { Project } from '@/features/projects/types';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+
+type Status = 'Όλα' | 'Προσφορά' | 'Ενεργό' | 'Σε Καθυστέρηση' | 'Ολοκληρωμένο' | 'Ακυρωμένο';
+
+const STATUS_TABS: Status[] = ['Όλα', 'Προσφορά', 'Ενεργό', 'Σε Καθυστέρηση', 'Ολοκληρωμένο', 'Ακυρωμένο'];
+
+const getProjectStatus = (project: Project): Status => {
+    if (project.status === 'Ακυρωμένο') return 'Ακυρωμένο';
+    if (project.status === 'Ολοκληρωμένο') return 'Ολοκληρωμένο';
+    if (project.status === 'Προσφορά') return 'Προσφορά';
+    
+    // Check for delay only if there is a deadline
+    if (project.deadline && project.deadline.toDate() < new Date() && project.status !== 'Ολοκληρωμένο') {
+        return 'Σε Καθυστέρηση';
+    }
+
+    return 'Ενεργό';
+}
 
 export default function ProjectsPage() {
   const { projects, loading, error, deleteProject } = useProjects();
-  const router = useRouter();
   
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<Status>('Όλα');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  useEffect(() => {
-    if (!selectedProject && projects.length > 0) {
-      setSelectedProject(projects[0]);
-    } else if (selectedProject) {
-      const stillExists = projects.some(p => p.id === selectedProject.id);
-      if (!stillExists) {
-        setSelectedProject(projects.length > 0 ? projects[0] : null);
-      }
+  const augmentedProjects = useMemo(() => {
+    return projects.map(p => ({...p, derivedStatus: getProjectStatus(p)}));
+  }, [projects]);
+
+  const filteredProjects = useMemo(() => {
+    let projs = augmentedProjects;
+
+    if (activeTab !== 'Όλα') {
+        projs = projs.filter(p => p.derivedStatus === activeTab);
     }
-  }, [projects, selectedProject]);
+
+    if (debouncedSearchTerm) {
+      const lowercasedTerm = debouncedSearchTerm.toLowerCase();
+      projs = projs.filter(p =>
+        p.title.toLowerCase().includes(lowercasedTerm) ||
+        p.ownerName?.toLowerCase().includes(lowercasedTerm) ||
+        p.applicationNumber?.toLowerCase().includes(lowercasedTerm)
+      );
+    }
+    return projs;
+  }, [augmentedProjects, activeTab, debouncedSearchTerm]);
+
+  const statusCounts = useMemo(() => {
+     const counts: Record<Status, number> = {
+        'Όλα': projects.length,
+        'Προσφορά': 0,
+        'Ενεργό': 0,
+        'Σε Καθυστέρηση': 0,
+        'Ολοκληρωμένο': 0,
+        'Ακυρωμένο': 0
+    };
+    augmentedProjects.forEach(p => {
+        counts[p.derivedStatus]++;
+    });
+    return counts;
+  }, [projects.length, augmentedProjects]);
 
 
   const handleConfirmDelete = async () => {
@@ -35,42 +83,80 @@ export default function ProjectsPage() {
     await deleteProject(projectToDelete.id);
     setProjectToDelete(null);
   };
-
-  const handleEdit = () => {
-    if (selectedProject) {
-      router.push(`/projects/${selectedProject.id}/edit`);
-    }
-  };
   
   return (
-    <main className="flex flex-1 bg-background">
-      <ProjectList 
-        projects={projects}
-        loading={loading}
-        error={error}
-        selectedProjectId={selectedProject?.id}
-        onSelectProject={setSelectedProject}
-      />
-      <div className="w-2/3 overflow-y-auto p-6">
-        {selectedProject ? (
-          <>
-            <ProjectHeader
-              project={selectedProject}
-              onEdit={handleEdit}
-              onDelete={() => setProjectToDelete(selectedProject)}
-            />
-            <ProjectDetails project={selectedProject} />
-          </>
-        ) : (
-             !loading && (
-                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                    <GanttChart className="h-16 w-16 mb-4"/>
-                    <h2 className="text-xl font-semibold">{ projects.length > 0 ? "Δεν επιλέχθηκε έργο" : "Δεν υπάρχουν έργα"}</h2>
-                    <p>{ projects.length > 0 ? "Επιλέξτε ένα έργο από τη λίστα για να δείτε τις λεπτομέρειες." : "Πατήστε 'Νέο' για να προσθέσετε το πρώτο σας έργο."}</p>
+    <main className="flex-1 p-6 bg-background">
+       <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+                 <GanttChart className="h-6 w-6"/>
+                <div>
+                  <h1 className="text-2xl font-semibold">Λίστα Έργων & Προσφορών</h1>
+                  <p className="text-sm text-muted-foreground">Δείτε και διαχειριστείτε όλες τις προσφορές, τα ενεργά και τα ολοκληρωμένα έργα.</p>
                 </div>
-            )
-        )}
-      </div>
+            </div>
+            <Button asChild>
+                <Link href="/projects/new"><Plus className="mr-2 h-4 w-4"/>Δημιουργία Έργου/Προσφοράς</Link>
+            </Button>
+        </div>
+
+        <div className="mb-6">
+             <div className="relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                 <Input 
+                    placeholder="Αναζήτηση έργου, αίτησης, ή ιδιοκτήτη..." 
+                    className="pl-10 w-full bg-card"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+            </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Status)}>
+            <TabsList className="bg-transparent p-0 border-b border-border rounded-none">
+                {STATUS_TABS.map(tab => (
+                   (statusCounts[tab] > 0 || tab === 'Όλα') && (
+                     <TabsTrigger 
+                        key={tab} 
+                        value={tab}
+                        className="bg-transparent shadow-none rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 border-primary data-[state=active]:text-primary"
+                    >
+                        {tab} ({statusCounts[tab]})
+                    </TabsTrigger>
+                   )
+                ))}
+            </TabsList>
+            <TabsContent value={activeTab} className="mt-6">
+                {error && (
+                    <Alert variant="destructive" className="mb-6">
+                        <TriangleAlert className="h-4 w-4" />
+                        <AlertTitle>Σφάλμα</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+                 {loading ? (
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-lg" />)}
+                    </div>
+                ) : filteredProjects.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {filteredProjects.map(project => (
+                            <ProjectCard 
+                                key={project.id} 
+                                project={project}
+                                onDelete={() => setProjectToDelete(project)}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
+                        <GanttChart className="h-16 w-16 mb-4 text-muted-foreground"/>
+                        <h2 className="text-xl font-semibold text-muted-foreground">Δεν βρέθηκαν έργα</h2>
+                        <p className="text-muted-foreground">Δεν υπάρχουν έργα που να ταιριάζουν με τα επιλεγμένα φίλτρα.</p>
+                    </div>
+                )}
+            </TabsContent>
+        </Tabs>
+      
 
       <ProjectDeleteDialog
         isOpen={!!projectToDelete}
