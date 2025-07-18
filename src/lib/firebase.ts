@@ -13,7 +13,7 @@ const firebaseConfig: FirebaseOptions = {
 
 export function configIsValid(): boolean {
     const config = firebaseConfig;
-    return !!(config.apiKey && config.projectId && !config.apiKey.startsWith('YOUR_'));
+    return !!(config.apiKey && config.projectId && config.apiKey !== 'YOUR_API_KEY' && !config.apiKey.includes("PUBLIC"));
 }
 
 const app = typeof window !== 'undefined' && configIsValid() 

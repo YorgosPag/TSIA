@@ -55,47 +55,42 @@ export default function ProjectsPage() {
     }
 
     setLoading(true);
-    try {
-      const projectsCollectionRef = collection(db, "tsia-projects");
-      const q = query(projectsCollectionRef, orderBy("createdAt", "desc"));
+    const projectsCollectionRef = collection(db, "tsia-projects");
+    const q = query(projectsCollectionRef, orderBy("createdAt", "desc"));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedProjects = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Project));
+
+      setProjects(fetchedProjects);
       
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedProjects = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Project));
+      if (selectedProject) {
+          const updatedSelected = fetchedProjects.find(p => p.id === selectedProject.id);
+          if(updatedSelected) {
+              setSelectedProject(updatedSelected);
+          } else {
+              setSelectedProject(fetchedProjects.length > 0 ? fetchedProjects[0] : null);
+          }
+      } else if (fetchedProjects.length > 0) {
+           setSelectedProject(fetchedProjects[0]);
+      }
+      
+      if (fetchedProjects.length === 0) {
+          setSelectedProject(null);
+      }
 
-        setProjects(fetchedProjects);
-        
-        if (selectedProject) {
-            const updatedSelected = fetchedProjects.find(p => p.id === selectedProject.id);
-            if(updatedSelected) {
-                setSelectedProject(updatedSelected);
-            } else {
-                setSelectedProject(fetchedProjects.length > 0 ? fetchedProjects[0] : null);
-            }
-        } else if (fetchedProjects.length > 0) {
-             setSelectedProject(fetchedProjects[0]);
-        }
-        
-        if (fetchedProjects.length === 0) {
-            setSelectedProject(null);
-        }
-
-        setLoading(false);
-        setError(null);
-      }, (err) => {
-        console.error("Firestore snapshot error:", err);
-        setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser.");
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } catch (e: any) {
-      console.error("Error setting up Firestore listener:", e);
-      setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
-    }
+      setError(null);
+    }, (err) => {
+      console.error("Firestore snapshot error:", err);
+      setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser.");
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+    
   }, []);
 
   const handleDeleteProject = async () => {
