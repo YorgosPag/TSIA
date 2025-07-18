@@ -1,10 +1,5 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
-
-# buildSteps is used to build the app before deploying.
-buildSteps:
-  - run: npm run build
-
 runConfig:
   minInstances: 0
   # maxInstances: 100
