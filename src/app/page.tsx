@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, where, getDocs } from 'firebase/firestore';
 import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Contact {
   id: string;
@@ -50,6 +51,11 @@ interface Contact {
   createdAt: any;
 }
 
+interface ListItem {
+    id: string;
+    value: string;
+}
+
 export default function Home() {
   const [entries, setEntries] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -60,6 +66,10 @@ export default function Home() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  const [rolesList, setRolesList] = useState<ListItem[]>([]);
+  const [currentRole, setCurrentRole] = useState<string | undefined>(undefined);
+
 
   useEffect(() => {
     if (!configIsValid() || !db) {
@@ -67,6 +77,27 @@ export default function Home() {
         setLoading(false);
         return;
     }
+
+    const fetchRoles = async () => {
+        if(!db) return;
+        try {
+            const listsQuery = query(collection(db, 'tsia-custom-lists'), where('title', '==', 'Ρόλοι'));
+            const querySnapshot = await getDocs(listsQuery);
+            if (!querySnapshot.empty) {
+                const rolesListDoc = querySnapshot.docs[0];
+                const itemsCollectionRef = collection(db, 'tsia-custom-lists', rolesListDoc.id, 'items');
+                const itemsQuery = query(itemsCollectionRef, orderBy('value'));
+                const itemsSnapshot = await getDocs(itemsQuery);
+                const roles = itemsSnapshot.docs.map(doc => ({ id: doc.id, value: doc.data().value }));
+                setRolesList(roles);
+            }
+        } catch (err) {
+            console.error("Error fetching roles:", err);
+            toast({ variant: 'destructive', title: "Σφάλμα", description: "Αποτυχία φόρτωσης λίστας ρόλων." });
+        }
+    };
+
+    fetchRoles();
 
     setLoading(true);
     try {
@@ -81,7 +112,6 @@ export default function Home() {
 
         setEntries(fetchedEntries);
         
-        // Update selected contact if it still exists
         if (selectedContact) {
             const updatedSelected = fetchedEntries.find(c => c.id === selectedContact.id);
             if(updatedSelected) {
@@ -119,7 +149,16 @@ export default function Home() {
       setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
     }
-  }, [selectedContact?.id]);
+  }, []);
+
+  useEffect(() => {
+    if (editingContact) {
+        setCurrentRole(editingContact.role);
+    } else {
+        setCurrentRole(undefined);
+    }
+  }, [editingContact]);
+
 
   const handleOpenDialog = (contact: Contact | null = null) => {
     setEditingContact(contact);
@@ -136,7 +175,7 @@ export default function Home() {
       firstName: firstName || '',
       lastName: lastName || '',
       companyName: formData.get('companyName') as string,
-      role: formData.get('role') as string,
+      role: currentRole || '',
       type: formData.get('type') as string,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
@@ -162,7 +201,7 @@ export default function Home() {
             await updateDoc(contactRef, contactData);
             toast({ title: "Επιτυχία", description: "Η επαφή ενημερώθηκε." });
         } else {
-            const newContactRef = await addDoc(collection(db, 'tsia-contacts'), { ...contactData, createdAt: serverTimestamp() });
+            const newContactRef = await addDoc(collection(db, 'tsia-contacts'), { ...contactData, createdAt: new Date() });
             toast({ title: "Επιτυχία", description: "Η επαφή δημιουργήθηκε." });
             const newContactData = { id: newContactRef.id, ...contactData, createdAt: new Date() };
             setSelectedContact(newContactData);
@@ -384,8 +423,17 @@ export default function Home() {
                   <Input id="companyName" name="companyName" defaultValue={editingContact?.companyName} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">Ρόλος</Label>
-                  <Input id="role" name="role" defaultValue={editingContact?.role} placeholder="π.χ. Πελάτης, Συνεργάτης" className="col-span-3" />
+                    <Label htmlFor="role" className="text-right">Ρόλος</Label>
+                    <Select name="role" value={currentRole} onValueChange={setCurrentRole} defaultValue={editingContact?.role}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Επιλέξτε ρόλο..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {rolesList.map(role => (
+                                <SelectItem key={role.id} value={role.value}>{role.value}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="type" className="text-right">Είδος</Label>

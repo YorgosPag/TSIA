@@ -75,9 +75,8 @@ export default function RootLayout({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                    <SidebarMenuItem>
-                    <SidebarMenuButton href="/" isActive={true}>
-                      <BookUser />
-                      Λίστα Επαφών
+                    <SidebarMenuButton asChild>
+                       <Link href="/"><BookUser />Λίστα Επαφών</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                    <SidebarMenuItem>
@@ -89,9 +88,8 @@ export default function RootLayout({
                   <SidebarGroup>
                       <SidebarGroupLabel>ΔΙΑΧΕΙΡΙΣΗ</SidebarGroupLabel>
                       <SidebarMenuItem>
-                        <SidebarMenuButton href="/custom-lists">
-                          <List />
-                          Προσαρμοσμένες Λίστες
+                        <SidebarMenuButton asChild>
+                          <Link href="/custom-lists"><List />Προσαρμοσμένες Λίστες</Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
