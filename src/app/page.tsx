@@ -1,17 +1,24 @@
+
 "use client";
 
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
+
+interface Entry {
+  id: number;
+  name: string;
+  isEditing: boolean;
+  editedName: string;
+}
 
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
-  const [submittedName, setSubmittedName] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState('');
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [nextId, setNextId] = useState(1);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
@@ -19,30 +26,49 @@ export default function Home() {
 
   const handleAddClick = () => {
     if (inputValue.trim()) {
-      setSubmittedName(inputValue);
-      setEditedName(inputValue); // Sync editedName with the new submission
-      setInputValue(''); // Clear the main input
+      const newEntry: Entry = {
+        id: nextId,
+        name: inputValue,
+        isEditing: false,
+        editedName: inputValue,
+      };
+      setEntries([...entries, newEntry]);
+      setNextId(nextId + 1);
+      setInputValue('');
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       handleAddClick();
     }
   };
 
-  const handleEditClick = () => {
-    setIsEditing(true);
+  const handleEditClick = (id: number) => {
+    setEntries(entries.map(entry =>
+      entry.id === id ? { ...entry, isEditing: true } : entry
+    ));
   };
 
-  const handleSaveClick = () => {
-    setSubmittedName(editedName);
-    setIsEditing(false);
+  const handleSaveClick = (id: number) => {
+    setEntries(entries.map(entry =>
+      entry.id === id ? { ...entry, name: entry.editedName, isEditing: false } : entry
+    ));
+  };
+  
+  const handleDeleteClick = (id: number) => {
+    setEntries(entries.filter(entry => entry.id !== id));
   };
 
-  const handleEditKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleEditInputChange = (id: number, value: string) => {
+    setEntries(entries.map(entry =>
+      entry.id === id ? { ...entry, editedName: value } : entry
+    ));
+  };
+
+  const handleEditKeyDown = (event: KeyboardEvent<HTMLInputElement>, id: number) => {
     if (event.key === 'Enter') {
-      handleSaveClick();
+      handleSaveClick(id);
     }
   };
 
@@ -52,7 +78,7 @@ export default function Home() {
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-headline">TSIA</CardTitle>
           <CardDescription>
-            Type your name and click "Add" to see the message.
+            Type a name and click "Add" to add it to the list.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -71,31 +97,40 @@ export default function Home() {
                 <Button onClick={handleAddClick}>Add</Button>
               </div>
             </div>
-            {submittedName && (
-              <div className="mt-6 rounded-lg bg-accent p-6 text-accent-foreground transition-all duration-300">
-                {isEditing ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      value={editedName}
-                      onChange={(e) => setEditedName(e.target.value)}
-                      onKeyDown={handleEditKeyDown}
-                      className="text-foreground"
-                      autoFocus
-                    />
-                    <Button onClick={handleSaveClick}>Save</Button>
+
+            {entries.length > 0 && (
+              <div className="mt-6 space-y-3">
+                {entries.map((entry) => (
+                  <div key={entry.id} className="rounded-lg bg-accent p-4 text-accent-foreground transition-all duration-300">
+                    {entry.isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          value={entry.editedName}
+                          onChange={(e) => handleEditInputChange(entry.id, e.target.value)}
+                          onKeyDown={(e) => handleEditKeyDown(e, entry.id)}
+                          className="text-foreground"
+                          autoFocus
+                        />
+                        <Button onClick={() => handleSaveClick(entry.id)}>Save</Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                           <p className="text-xl font-bold">{entry.name}</p>
+                        </div>
+                        <div className="flex items-center">
+                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(entry.id)}>
+                            <Pencil className="h-5 w-5" />
+                          </Button>
+                           <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(entry.id)}>
+                            <Trash2 className="h-5 w-5 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-4">
-                    <div>
-                      <p className="text-lg">Welcome,</p>
-                      <p className="text-4xl font-bold">{submittedName}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={handleEditClick}>
-                      <Pencil className="h-5 w-5" />
-                    </Button>
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
