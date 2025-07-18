@@ -33,7 +33,7 @@ export default function Home() {
     setIsFirebaseConfigured(configured);
 
     if (!configured) {
-        setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο 'src/lib/firebase.ts'.");
+        setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
         setLoading(false);
         return;
     }
