@@ -31,7 +31,7 @@ export default function Home() {
         id: doc.id,
         ...doc.data(),
       } as Entry));
-      fetchedEntries.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds);
+      fetchedEntries.sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
       setEntries(fetchedEntries);
       setLoading(false);
     }, (err) => {
@@ -50,6 +50,7 @@ export default function Home() {
   const handleAddClick = async () => {
     if (inputValue.trim()) {
       try {
+        setError(null);
         const entriesCollectionRef = collection(db, "tsia-entries");
         await addDoc(entriesCollectionRef, { name: inputValue, createdAt: serverTimestamp() });
         setInputValue('');
@@ -79,6 +80,7 @@ export default function Home() {
   const handleSaveClick = async (id: string) => {
     if (editingText.trim()) {
       try {
+        setError(null);
         const entryDocRef = doc(db, "tsia-entries", id);
         await updateDoc(entryDocRef, { name: editingText });
         handleCancelEdit();
@@ -90,15 +92,13 @@ export default function Home() {
   };
   
   const handleDeleteClick = async (id: string) => {
-    const confirmation = confirm("Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το όνομα;");
-    if (confirmation) {
-      try {
-        const entryDocRef = doc(db, "tsia-entries", id);
-        await deleteDoc(entryDocRef);
-      } catch (e) {
-        console.error("Error deleting document: ", e);
-        setError("Αποτυχία διαγραφής από τη βάση δεδομένων.");
-      }
+    try {
+      setError(null);
+      const entryDocRef = doc(db, "tsia-entries", id);
+      await deleteDoc(entryDocRef);
+    } catch (e) {
+      console.error("Error deleting document: ", e);
+      setError("Αποτυχία διαγραφής από τη βάση δεδομένων.");
     }
   };
 
