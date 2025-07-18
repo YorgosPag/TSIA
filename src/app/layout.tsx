@@ -69,13 +69,13 @@ export default function RootLayout({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                       <Link href="/projects"><GanttChart />Λίστα Έργων</Link>
+                    <SidebarMenuButton href="/projects">
+                       <GanttChart />Λίστα Έργων
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                       <Link href="/"><BookUser />Λίστα Επαφών</Link>
+                    <SidebarMenuButton href="/">
+                       <BookUser />Λίστα Επαφών
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                    <SidebarMenuItem>
@@ -87,8 +87,8 @@ export default function RootLayout({
                   <SidebarGroup>
                       <SidebarGroupLabel>ΔΙΑΧΕΙΡΙΣΗ</SidebarGroupLabel>
                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link href="/custom-lists"><List />Προσαρμοσμένες Λίστες</Link>
+                        <SidebarMenuButton href="/custom-lists">
+                          <List />Προσαρμοσμένες Λίστες
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
@@ -129,5 +129,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    

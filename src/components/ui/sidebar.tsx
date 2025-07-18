@@ -536,15 +536,17 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-type SidebarMenuButtonProps = React.ComponentProps<"button"> & {
+type SidebarMenuButtonProps = (
+  | (React.ComponentProps<typeof NextLink> & { href: string })
+  | (React.ComponentProps<"button"> & { href?: undefined })
+) & {
   asChild?: boolean
   isActive?: boolean
   tooltip?: string | React.ComponentProps<typeof TooltipContent>
-  href?: string
 } & VariantProps<typeof sidebarMenuButtonVariants>
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
+  HTMLButtonElement | HTMLAnchorElement,
   SidebarMenuButtonProps
 >(
   (
@@ -554,16 +556,15 @@ const SidebarMenuButton = React.forwardRef<
       variant = "default",
       size = "default",
       tooltip,
-      href,
       className,
       ...props
     },
     ref
   ) => {
     const { isMobile, state } = useSidebar()
-    const Comp = asChild ? Slot : "button"
+    const Comp = asChild ? Slot : props.href ? NextLink : "button"
     
-    const buttonContent = (
+    const button = (
       // @ts-expect-error - It's fine for the props to be what they are.
       <Comp
         ref={ref}
@@ -573,16 +574,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       />
-    );
-
-    const button = href ? (
-      <NextLink href={href} legacyBehavior passHref>
-        {buttonContent}
-      </NextLink>
-    ) : (
-      buttonContent
-    );
-
+    )
 
     if (!tooltip) {
       return button
