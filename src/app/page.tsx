@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useContacts } from '@/features/contacts/hooks/useContacts';
 import { useRolesList } from '@/features/contacts/hooks/useRolesList';
 import { ContactList } from '@/features/contacts/components/ContactList';

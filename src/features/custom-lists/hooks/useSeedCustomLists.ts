@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, writeBatch, doc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 // --- Ρεαλιστικά Δεδομένα για Επαφές (Contacts) - Provided by User ---
@@ -94,16 +94,29 @@ const initialListsData = [
     { title: "Κατάσταση Έργου", description: "Οι κύριες καταστάσεις ενός έργου.", items: ["Προσφορά", "Ενεργό", "Ολοκληρωμένο", "Ακυρωμένο"] },
 ];
 
+const projectsData = [
+    { title: "Ανακαίνιση διαμερίσματος στην Τούμπα", status: 'Ενεργό', deadline: new Date(2024, 11, 20) },
+    { title: "Ενεργειακή Αναβάθμιση Μονοκατοικίας στο Πανόραμα", status: 'Ολοκληρωμένο', deadline: new Date(2023, 10, 15) },
+    { title: "Προσφορά για μελέτη στατικής επάρκειας", status: 'Προσφορά', deadline: null },
+    { title: "Αλλαγή κουφωμάτων σε πολυκατοικία στο κέντρο", status: 'Σε Καθυστέρηση', deadline: new Date(2024, 6, 1) },
+    { title: "Τακτοποίηση αυθαιρέτου χώρου", status: 'Ακυρωμένο', deadline: null },
+    { title: "Κατασκευή νέας διώροφης κατοικίας στην Επανομή", status: 'Ενεργό', deadline: new Date(2025, 5, 30) },
+    { title: "Προσφορά για έκδοση ενεργειακού πιστοποιητικού", status: 'Προσφορά', deadline: null },
+    { title: "Ανακαίνιση γραφείου στην Καλαμαριά", status: 'Ολοκληρωμένο', deadline: new Date(2024, 1, 28) },
+    { title: "Μελέτη πυρασφάλειας για κατάστημα υγειονομικού ενδιαφέροντος", status: 'Ενεργό', deadline: new Date(2024, 8, 10) },
+    { title: "Προσθήκη κατ' επέκταση σε υπάρχουσα κατοικία", status: 'Προσφορά', deadline: null },
+];
+
 /**
- * Hook που εκτελείται μία φορά για να ελέγξει και να εισάγει αρχικά δεδομένα (seeding)
- * αν οι συλλογές `tsia-custom-lists`, `tsia-contacts` και `tsia-projects` είναι άδειες.
+ * Hook που εκτελείται μία φορά για να ελέγξει και να εισάγει αρχικά δεδομένα (seeding).
+ * Τώρα πια, δεν ελέγχει αν οι συλλογές είναι άδειες, αλλά προσπαθεί να γράψει τα δεδομένα πάντα.
  */
 export function useSeedCustomLists() {
     const [seeding, setSeeding] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const checkAndSeedData = async () => {
+        const seedData = async () => {
             if (!db) {
                 setError("Firebase not initialized");
                 setSeeding(false);
@@ -111,59 +124,37 @@ export function useSeedCustomLists() {
             }
 
             try {
+                console.log("Attempting to seed data. This will run every time the app starts.");
                 const batch = writeBatch(db);
                 
-                // 1. Έλεγχος και Seeding Προσαρμοσμένων Λιστών
-                const listsSnapshot = await getDocs(collection(db, "tsia-custom-lists"));
-                if (listsSnapshot.empty) {
-                    console.log("No custom lists found, seeding initial data...");
-                    initialListsData.forEach(listData => {
-                        const listDocRef = doc(collection(db, "tsia-custom-lists"));
-                        batch.set(listDocRef, { title: listData.title, description: listData.description, createdAt: new Date() });
-                        listData.items.forEach(itemValue => {
-                            const itemDocRef = doc(collection(listDocRef, 'items'));
-                            batch.set(itemDocRef, { value: itemValue, createdAt: new Date() });
-                        });
+                // 1. Seeding Προσαρμοσμένων Λιστών
+                console.log("Seeding custom lists...");
+                initialListsData.forEach(listData => {
+                    const listDocRef = doc(collection(db, "tsia-custom-lists"));
+                    batch.set(listDocRef, { title: listData.title, description: listData.description, createdAt: new Date() });
+                    listData.items.forEach(itemValue => {
+                        const itemDocRef = doc(collection(listDocRef, 'items'));
+                        batch.set(itemDocRef, { value: itemValue, createdAt: new Date() });
                     });
-                }
+                });
 
-                // 2. Έλεγχος και Seeding Επαφών
-                const contactsSnapshot = await getDocs(collection(db, "tsia-contacts"));
+                // 2. Seeding Επαφών
+                console.log("Seeding contacts with production data...");
                 let createdContacts: { id: string; name: string; }[] = [];
-                if (contactsSnapshot.empty) {
-                    console.log("No contacts found, seeding with production data...");
-                    contactsData.forEach(contactData => {
-                        const contactDocRef = doc(collection(db, "tsia-contacts"));
-                        batch.set(contactDocRef, { ...contactData });
-                        const fullName = [contactData.firstName, contactData.lastName].filter(Boolean).join(' ') || contactData.companyName;
-                        createdContacts.push({ id: contactDocRef.id, name: fullName as string });
+                contactsData.forEach(contactData => {
+                    const contactDocRef = doc(collection(db, "tsia-contacts"));
+                    const { createdAt, ...rest } = contactData;
+                    batch.set(contactDocRef, { 
+                        ...rest,
+                        createdAt: new Date(createdAt)
                     });
-                } else {
-                    // Αν υπάρχουν ήδη επαφές, τις χρειαζόμαστε για να δημιουργήσουμε τα έργα
-                    createdContacts = contactsSnapshot.docs.map(d => {
-                        const data = d.data();
-                        const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ') || data.companyName;
-                        return { id: d.id, name: fullName };
-                    });
-                }
+                    const fullName = [contactData.firstName, contactData.lastName].filter(Boolean).join(' ') || contactData.companyName;
+                    createdContacts.push({ id: contactDocRef.id, name: fullName as string });
+                });
 
-                // 3. Έλεγχος και Seeding Έργων
-                const projectsSnapshot = await getDocs(collection(db, "tsia-projects"));
-                if (projectsSnapshot.empty && createdContacts.length > 0) {
-                    console.log("No projects found, seeding initial data...");
-                    const projectsData = [
-                        { title: "Ανακαίνιση διαμερίσματος στην Τούμπα", status: 'Ενεργό', deadline: new Date(2024, 11, 20) },
-                        { title: "Ενεργειακή Αναβάθμιση Μονοκατοικίας στο Πανόραμα", status: 'Ολοκληρωμένο', deadline: new Date(2023, 10, 15) },
-                        { title: "Προσφορά για μελέτη στατικής επάρκειας", status: 'Προσφορά', deadline: null },
-                        { title: "Αλλαγή κουφωμάτων σε πολυκατοικία στο κέντρο", status: 'Σε Καθυστέρηση', deadline: new Date(2024, 6, 1) },
-                        { title: "Τακτοποίηση αυθαιρέτου χώρου", status: 'Ακυρωμένο', deadline: null },
-                        { title: "Κατασκευή νέας διώροφης κατοικίας στην Επανομή", status: 'Ενεργό', deadline: new Date(2025, 5, 30) },
-                        { title: "Προσφορά για έκδοση ενεργειακού πιστοποιητικού", status: 'Προσφορά', deadline: null },
-                        { title: "Ανακαίνιση γραφείου στην Καλαμαριά", status: 'Ολοκληρωμένο', deadline: new Date(2024, 1, 28) },
-                        { title: "Μελέτη πυρασφάλειας για κατάστημα υγειονομικού ενδιαφέροντος", status: 'Ενεργό', deadline: new Date(2024, 8, 10) },
-                        { title: "Προσθήκη κατ' επέκταση σε υπάρχουσα κατοικία", status: 'Προσφορά', deadline: null },
-                    ];
-                    
+                // 3. Seeding Έργων
+                if (createdContacts.length > 0) {
+                    console.log("Seeding projects...");
                     projectsData.forEach((proj, index) => {
                         const ownerContact = createdContacts[index % createdContacts.length];
                         const projectDocRef = doc(collection(db, "tsia-projects"));
@@ -177,21 +168,36 @@ export function useSeedCustomLists() {
                         });
                     });
                 }
-
+                
+                // Execute all writes
                 await batch.commit();
                 console.log("Seeding process completed.");
 
             } catch (err: any) {
-                console.error("Error during seeding process:", err);
-                setError(err.message);
+                // Ignore "Function WriteBatch.commit() requires its first argument to be of type an array of writes" error if batch is empty.
+                if (err.message.includes('requires its first argument to be of type an array of writes')) {
+                     console.log("Batch was empty, nothing to seed.");
+                } else {
+                    console.error("Error during seeding process:", err);
+                    setError(err.message);
+                }
             } finally {
                 setSeeding(false);
             }
         };
 
-        checkAndSeedData();
+        const flag = sessionStorage.getItem('data_seeded');
+        if(!flag) {
+            seedData();
+            sessionStorage.setItem('data_seeded', 'true');
+        } else {
+             setSeeding(false);
+        }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return { seeding, error };
 }
+
+    
