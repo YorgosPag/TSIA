@@ -5,29 +5,83 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-// --- Ρεαλιστικά Δεδομένα για Επαφές (Contacts) ---
+// --- Ρεαλιστικά Δεδομένα για Επαφές (Contacts) - Provided by User ---
 const contactsData = [
-  // Πελάτες
-  { firstName: "Γεώργιος", lastName: "Παπαδόπουλος", role: "Πελάτης", type: "Ιδιώτης", phone: "6971234567", email: "g.papadopoulos@email.com", address: "Εγνατίας 154", city: "Θεσσαλονίκη", vatNumber: "123456789", taxOffice: "Δ' Θεσσαλονίκης" },
-  { firstName: "Ελένη", lastName: "Ιωαννίδου", role: "Πελάτης", type: "Ιδιώτης", phone: "6982345678", email: "e.ioannidou@email.com", address: "Λεωφ. Κηφισίας 210", city: "Αθήνα", vatNumber: "987654321", taxOffice: "Α' Αθηνών" },
-  { firstName: "Κωνσταντίνος", lastName: "Αγγέλου", role: "Πελάτης", type: "Ιδιώτης", phone: "6943456789", email: "k.aggelou@email.com", address: "Ανδρέα Παπανδρέου 50", city: "Πάτρα", vatNumber: "112233445", taxOffice: "Α' Πατρών" },
-
-  // Συνεργάτες
-  { firstName: "Ανδρέας", lastName: "Νικολάου", role: "Συνεργάτης", type: "Αρχιτέκτονας", phone: "6978889900", email: "a.nikolaou.arch@email.com", companyName: "Nikolaou & Partners", address: "Τσιμισκή 33", city: "Θεσσαλονίκη", vatNumber: "223344556", taxOffice: "Ε' Θεσσαλονίκης" },
-  { firstName: "Μαρία", lastName: "Δημητρίου", role: "Συνεργάτης", type: "Πολιτικός Μηχανικός", phone: "6934445566", email: "m.dimitriou.civil@email.com", companyName: "Dimitriou Engineering", address: "Βασ. Σοφίας 12", city: "Αθήνα", vatNumber: "334455667", taxOffice: "ΙΓ' Αθηνών" },
-  { firstName: "Ιωάννης", lastName: "Γεωργίου", role: "Συνεργάτης", type: "Δικηγόρος", phone: "6971112233", email: "i.georgiou.law@email.com", address: "Ερμού 5", city: "Αθήνα", vatNumber: "445566778", taxOffice: "ΣΤ' Αθηνών" },
-
-  // Προμηθευτές
-  { companyName: "ALUMIL A.E.", role: "Προμηθευτής", type: "Κουφώματα", phone: "2310123123", email: "sales@alumil.com", address: "ΒΙ.ΠΕ. Κιλκίς", city: "Κιλκίς", vatNumber: "556677889", taxOffice: "Κιλκίς" },
-  { companyName: "ISOMAT A.E.", role: "Προμηθευτής", type: "Δομικά Υλικά", phone: "2310456456", email: "info@isomat.gr", address: "17ο χλμ Θεσ/νίκης - Αγ. Αθανασίου", city: "Θεσσαλονίκη", vatNumber: "667788990", taxOffice: "Ιωνίας" },
-  { companyName: "DAIKIN HELLAS", role: "Προμηθευτής", type: "Συστήματα Θέρμανσης-Ψύξης", phone: "2109876543", email: "contact@daikin.gr", address: "Λ. Βουλιαγμένης 577", city: "Αργυρούπολη", vatNumber: "778899001", taxOffice: "Ηλιούπολης" },
-  
-  // Δημόσιοι Υπάλληλοι / Φορείς
-  { firstName: "Αθανάσιος", lastName: "Οικονόμου", role: "Δημόσιος Υπάλληλος", type: "Υπάλληλος Πολεοδομίας", phone: "2101234567", email: "poleodomia@dimos.gr", companyName: "Υ.ΔΟΜ. Δήμου Αθηναίων", address: "Αθηνάς 63", city: "Αθήνα", vatNumber: "", taxOffice: "" },
-  { firstName: "Σοφία", lastName: "Βασιλείου", role: "Δημόσιος Υπάλληλος", type: "Υπάλληλος ΔΟΥ", phone: "2310987654", email: "doy.thess@aade.gr", companyName: "Δ' ΔΟΥ Θεσσαλονίκης", address: "Πλ. Δημοκρατίας 1", city: "Θεσσαλονίκη", vatNumber: "", taxOffice: "" },
-
-  // Λογιστήριο
-  { firstName: "Χρήστος", lastName: "Σταυρόπουλος", role: "Λογιστήριο", type: "Λογιστής", phone: "2119998877", email: "c.stavropoulos@logistis.gr", companyName: "Stavropoulos Tax Services", address: "Πανεπιστημίου 34", city: "Αθήνα", vatNumber: "889900112", taxOffice: "Α' Αθηνών" },
+  {
+    "firstName": "Άγγελος",
+    "lastName": "Κωνσταντινίδης",
+    "companyName": "",
+    "role": "Πελάτης",
+    "type": "Ιδιώτης",
+    "phone": "6981234567",
+    "email": "angelos.konst@gmail.com",
+    "address": "Μελά Παύλου 30",
+    "city": "Θεσσαλονίκη",
+    "vatNumber": "012345678",
+    "taxOffice": "Α' Θεσσαλονίκης",
+    "notes": "Ζητάει προσφορά για ανακαίνιση.",
+    "createdAt": new Date("2024-07-01T10:24:00.000Z")
+  },
+  {
+    "firstName": "",
+    "lastName": "",
+    "companyName": "MONOPROSOPI PRIMASUN I.K.E.",
+    "role": "Προμηθευτής",
+    "type": "Εταιρεία",
+    "phone": "2310999999",
+    "email": "info@primasun.gr",
+    "address": "Βασιλίσσης Όλγας 80",
+    "city": "Θεσσαλονίκη",
+    "vatNumber": "099912345",
+    "taxOffice": "Δ' Θεσσαλονίκης",
+    "notes": "Ειδίκευση σε θερμομονώσεις.",
+    "createdAt": new Date("2024-07-10T14:10:00.000Z")
+  },
+  {
+    "firstName": "Δέσποινα",
+    "lastName": "Καψίδου",
+    "companyName": "",
+    "role": "Πελάτης",
+    "type": "Ιδιώτης",
+    "phone": "",
+    "email": "despoina.k@gmail.com",
+    "address": "Ναυαρίνου 12",
+    "city": "Καβάλα",
+    "vatNumber": "",
+    "taxOffice": "",
+    "notes": "Έργο ολοκληρωμένο.",
+    "createdAt": new Date("2023-11-19T12:30:00.000Z")
+  },
+  {
+    "firstName": "Γεώργιος",
+    "lastName": "Κυριελίδης",
+    "companyName": "",
+    "role": "Συνεργάτης",
+    "type": "Μηχανικός",
+    "phone": "6974123456",
+    "email": "gkyrielidis@engmail.com",
+    "address": "Στρατηγού Καλλάρη 19",
+    "city": "Δράμα",
+    "vatNumber": "112233445",
+    "taxOffice": "Δράμας",
+    "notes": "",
+    "createdAt": new Date("2024-06-18T16:20:00.000Z")
+  },
+  {
+    "firstName": "",
+    "lastName": "",
+    "companyName": "Ανατολή Εύα Καραγιάννη",
+    "role": "Πελάτης",
+    "type": "",
+    "phone": "",
+    "email": "karagianni.anatoli@gmail.com",
+    "address": "Μαρτίου 40",
+    "city": "Αλεξανδρούπολη",
+    "vatNumber": "113355779",
+    "taxOffice": "Αλεξανδρούπολης",
+    "notes": "Έχει αιτηθεί για Εξοικονομώ.",
+    "createdAt": new Date("2024-07-10T08:00:00.000Z")
+  }
 ];
 
 // --- Ρεαλιστικά Δεδομένα για Προσαρμοσμένες Λίστες ---
@@ -77,10 +131,10 @@ export function useSeedCustomLists() {
                 const contactsSnapshot = await getDocs(collection(db, "tsia-contacts"));
                 let createdContacts: { id: string; name: string; }[] = [];
                 if (contactsSnapshot.empty) {
-                    console.log("No contacts found, seeding initial data...");
+                    console.log("No contacts found, seeding with production data...");
                     contactsData.forEach(contactData => {
                         const contactDocRef = doc(collection(db, "tsia-contacts"));
-                        batch.set(contactDocRef, { ...contactData, createdAt: new Date() });
+                        batch.set(contactDocRef, { ...contactData });
                         const fullName = [contactData.firstName, contactData.lastName].filter(Boolean).join(' ') || contactData.companyName;
                         createdContacts.push({ id: contactDocRef.id, name: fullName as string });
                     });
