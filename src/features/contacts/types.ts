@@ -1,20 +1,19 @@
 
 export interface Contact {
-  id: string;
+  id: string; // Document ID from Firestore
   firstName: string;
   lastName: string;
   companyName?: string;
   role?: string;
   type?: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   address?: string;
   city?: string;
   vatNumber?: string;
   taxOffice?: string;
-  socialMedia?: { platform: string; url: string }[];
   notes?: string;
-  createdAt: any;
+  createdAt: any; // Firestore Timestamp
 }
 
 export interface ListItem {
