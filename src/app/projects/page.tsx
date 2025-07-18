@@ -190,7 +190,7 @@ export default function ProjectsPage() {
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={handleEditClick}><Edit className="mr-2 h-4 w-4"/>Επεξεργασία</Button>
-                        <Button variant="outline" color="destructive" onClick={() => setProjectToDelete(selectedProject)}><Trash2 className="mr-2 h-4 w-4"/>Διαγραφή</Button>
+                        <Button variant="destructive" onClick={() => setProjectToDelete(selectedProject)}><Trash2 className="mr-2 h-4 w-4"/>Διαγραφή</Button>
                     </div>
                 </div>
 
