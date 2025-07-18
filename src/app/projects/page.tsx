@@ -96,7 +96,7 @@ export default function ProjectsPage() {
       setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
     }
-  }, [selectedProject]);
+  }, []);
 
   const handleDeleteProject = async () => {
     if (!db || !projectToDelete) return;
