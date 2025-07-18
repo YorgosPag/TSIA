@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyC3c-3X8P0o_m7Av6iuixd673ddtDM4d4s",
   authDomain: "tsia-96afd.firebaseapp.com",
   projectId: "tsia-96afd",
-  storageBucket: "tsia-96afd.appspot.com", // <-- ΤΟ ΣΩΣΤΟ! (είχες βάλει firebasestorage.app)
+  storageBucket: "tsia-96afd.appspot.com",
   messagingSenderId: "392609655230",
   appId: "1:392609655230:web:b9f3704dc56837b317f1ef",
   measurementId: "G-RV2TH9CW39"
