@@ -1,25 +1,9 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import {
-  Sidebar,
-  SidebarProvider,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  SidebarGroup,
-  SidebarGroupLabel
-} from '@/components/ui/sidebar';
-import { BookUser, LayoutDashboard, GanttChart, BarChart, FileText, Mail, List, Archive, Moon, Bell } from 'lucide-react';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { MainLayout } from '@/components/MainLayout';
 import { Toaster } from '@/components/ui/toaster';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',
@@ -32,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -46,85 +30,17 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider>
-          <div className="flex">
-            <Sidebar collapsible="icon">
-              <SidebarHeader className="p-4 h-16 flex items-center">
-                 <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 bg-primary flex items-center justify-center">
-                        <span className="text-xl font-bold text-primary-foreground">N</span>
-                    </Avatar>
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-bold">NESTOR</h2>
-                        <span className="text-xs text-muted-foreground">eco</span>
-                    </div>
-                </div>
-              </SidebarHeader>
-              <SidebarContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton href="#">
-                      <BarChart />
-                      Πίνακας Ελέγχου
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton href="/projects">
-                       <GanttChart />Λίστα Έργων
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton href="/">
-                       <BookUser />Λίστα Επαφών
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton href="/reports">
-                      <FileText />
-                      Αποτυπώσεις
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarGroup>
-                      <SidebarGroupLabel>ΔΙΑΧΕΙΡΙΣΗ</SidebarGroupLabel>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton href="/custom-lists">
-                          <List />Προσαρμοσμένες Λίστες
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton href="#">
-                          <Archive />
-                          Αρχείο Email
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                  </SidebarGroup>
-                </SidebarMenu>
-              </SidebarContent>
-            </Sidebar>
-            <SidebarInset>
-                <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-                    <div className="flex items-center gap-4">
-                        <div className="relative w-96">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Αναζήτηση επαφής ή έργου..." className="pl-10 bg-background" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon"><LayoutDashboard /></Button>
-                        <Button variant="ghost" size="icon"><Moon /></Button>
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-right">Νέστωρ Δοκιμαστικός</span>
-                             <Avatar className="h-9 w-9">
-                                <AvatarFallback className="bg-primary text-primary-foreground">N</AvatarFallback>
-                            </Avatar>
-                        </div>
-                    </div>
-                </header>
-                {children}
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <MainLayout>
+            {children}
+          </MainLayout>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

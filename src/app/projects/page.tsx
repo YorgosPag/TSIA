@@ -48,7 +48,7 @@ export default function ProjectsPage() {
     let projs = augmentedProjects;
 
     if (activeTab === 'Εντός Χρονοδιαγράμματος') {
-        projs = projs.filter(p => p.derivedStatus === 'Εντός Χρονοδιαγράμματος' || p.derivedStatus === 'Σε Καθυστέρηση');
+        projs = projs.filter(p => p.derivedStatus === 'Εντός Χρονοδιαγράμματος');
     } else if (activeTab !== 'Όλα') {
         projs = projs.filter(p => p.derivedStatus === activeTab);
     }
@@ -74,12 +74,11 @@ export default function ProjectsPage() {
         'Ακυρωμένο': 0,
     };
     augmentedProjects.forEach(p => {
-        counts[p.derivedStatus]++;
+        if(counts[p.derivedStatus] !== undefined) {
+           counts[p.derivedStatus]++;
+        }
     });
     
-    const activeCount = augmentedProjects.filter(p => p.derivedStatus === 'Εντός Χρονοδιαγράμματος' || p.derivedStatus === 'Σε Καθυστέρηση').length;
-    counts['Εντός Χρονοδιαγράμματος'] = activeCount;
-
     return counts;
   }, [projects.length, augmentedProjects]);
 
@@ -93,6 +92,12 @@ export default function ProjectsPage() {
   const tabDisplayName = (tab: Status) => {
     if(tab === 'Εντός Χρονοδιαγράμματος') return 'Ενεργά';
     return tab;
+  }
+
+  const getTabCount = (tab: Status): number => {
+    if (tab === 'Όλα') return projects.length;
+    if (tab === 'Εντός Χρονοδιαγράμματος') return statusCounts['Εντός Χρονοδιαγράμματος'];
+    return statusCounts[tab];
   }
   
   return (
@@ -125,13 +130,13 @@ export default function ProjectsPage() {
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Status)}>
             <TabsList className="bg-transparent p-0 border-b border-border rounded-none">
                 {STATUS_TABS.map(tab => (
-                   (tab === 'Όλα' || statusCounts[tab] > 0) && (
+                   (tab === 'Όλα' || getTabCount(tab) > 0) && (
                      <TabsTrigger 
                         key={tab} 
                         value={tab}
                         className="bg-transparent shadow-none rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 border-primary data-[state=active]:text-primary"
                     >
-                        {tabDisplayName(tab)} ({tab === 'Εντός Χρονοδιαγράμματος' ? statusCounts['Εντός Χρονοδιαγράμματος'] : statusCounts[tab]})
+                        {tabDisplayName(tab)} ({getTabCount(tab)})
                     </TabsTrigger>
                    )
                 ))}
@@ -146,7 +151,7 @@ export default function ProjectsPage() {
                 )}
                  {loading ? (
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[280px] rounded-lg" />)}
+                        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[290px] rounded-lg" />)}
                     </div>
                 ) : filteredProjects.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

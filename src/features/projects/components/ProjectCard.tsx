@@ -19,11 +19,11 @@ interface ProjectCardProps {
 }
 
 const statusStyles = {
-    'Εντός Χρονοδιαγράμματος': { badge: 'bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200', progress: 'bg-blue-500' },
-    'Σε Καθυστέρηση': { badge: 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200', progress: 'bg-amber-500' },
-    'Ολοκληρωμένο': { badge: 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200', progress: 'bg-green-500' },
-    'Προσφορά': { badge: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200', progress: 'bg-yellow-500' },
-    'Ακυρωμένο': { badge: 'bg-gray-100 text-gray-800 hover:bg-gray-100 border-gray-200', progress: 'bg-gray-500' },
+    'Εντός Χρονοδιαγράμματος': { badge: 'bg-blue-500/10 text-blue-500 border-blue-500/20', progress: 'bg-blue-500' },
+    'Σε Καθυστέρηση': { badge: 'bg-amber-500/10 text-amber-500 border-amber-500/20', progress: 'bg-amber-500' },
+    'Ολοκληρωμένο': { badge: 'bg-green-500/10 text-green-500 border-green-500/20', progress: 'bg-green-500' },
+    'Προσφορά': { badge: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', progress: 'bg-yellow-500' },
+    'Ακυρωμένο': { badge: 'bg-gray-500/10 text-gray-500 border-gray-500/20', progress: 'bg-gray-500' },
 };
 
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
@@ -35,11 +35,11 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
     }
     
     return (
-        <Card className="flex flex-col bg-card hover:border-primary/20 transition-all duration-200 shadow-sm hover:shadow-md">
-            <CardHeader className="p-4 border-b">
-                <div className="flex justify-between items-start">
+        <Card className="flex flex-col bg-card hover:border-primary/50 transition-all duration-200 shadow-sm hover:shadow-md">
+            <CardHeader className="p-4">
+                <div className="flex justify-between items-start gap-2">
                     <div className="text-xs text-muted-foreground">
-                        <p className="font-semibold text-foreground">{project.ownerName || 'Άγνωστος Ιδιοκτήτης'}</p>
+                        <p className="font-semibold text-card-foreground">{project.ownerName || 'Άγνωστος Ιδιοκτήτης'}</p>
                         <p>Αρ. Αίτησης: {project.applicationNumber || '-'}</p>
                     </div>
                      <DropdownMenu>
@@ -55,7 +55,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
                     </DropdownMenu>
                 </div>
             </CardHeader>
-            <CardContent className="flex-grow p-4">
+            <CardContent className="flex-grow p-4 pt-0">
                 <p className="font-bold text-base leading-tight mb-3">{project.title}</p>
                 <div className="flex gap-2 mb-4">
                      <Badge variant="outline" className={`text-xs font-semibold ${statusStyles[status]?.badge || statusStyles['Ακυρωμένο'].badge}`}>{status}</Badge>
@@ -70,14 +70,14 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
                 </div>
                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-3">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Προθεσμία: {project.deadline ? format(project.deadline.toDate(), 'dd/MM/yyyy', { locale: el }) : '-'}</span>
+                    <span>Προθεσμία: {project.deadline && project.deadline.toDate ? format(project.deadline.toDate(), 'dd/MM/yyyy', { locale: el }) : '-'}</span>
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-between items-center bg-muted/30 p-4">
+            <CardFooter className="flex justify-between items-center bg-muted/50 p-4 mt-auto">
                 <span className="text-base font-bold">
                     {new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' }).format(project.cost ?? 0)}
                 </span>
-                <Button variant="ghost" size="sm" className="text-primary hover:text-primary font-semibold" asChild>
+                <Button variant="link" size="sm" className="text-primary hover:text-primary font-semibold p-0 h-auto" asChild>
                     <Link href={`/projects/${project.id}/edit`}>
                         Προβολή Έργου <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                     </Link>
