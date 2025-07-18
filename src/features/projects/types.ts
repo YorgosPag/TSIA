@@ -11,5 +11,5 @@ export interface Project {
   createdAt: any; // Firestore Timestamp
   cost?: number;
   progress: number;
-  derivedStatus: 'Προσφορά' | 'Ενεργό' | 'Σε Καθυστέρηση' | 'Ολοκληρωμένο' | 'Ακυρωμένο';
+  derivedStatus: 'Προσφορά' | 'Εντός Χρονοδιαγράμματος' | 'Σε Καθυστέρηση' | 'Ολοκληρωμένο' | 'Ακυρωμένο';
 }

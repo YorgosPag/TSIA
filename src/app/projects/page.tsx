@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
@@ -15,9 +15,9 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type Status = 'Όλα' | 'Προσφορά' | 'Ενεργό' | 'Σε Καθυστέρηση' | 'Ολοκληρωμένο' | 'Ακυρωμένο';
+type Status = 'Όλα' | 'Προσφορά' | 'Εντός Χρονοδιαγράμματος' | 'Σε Καθυστέρηση' | 'Ολοκληρωμένο' | 'Ακυρωμένο';
 
-const STATUS_TABS: Status[] = ['Όλα', 'Προσφορά', 'Ενεργό', 'Σε Καθυστέρηση', 'Ολοκληρωμένο', 'Ακυρωμένο'];
+const STATUS_TABS: Status[] = ['Όλα', 'Προσφορά', 'Εντός Χρονοδιαγράμματος', 'Σε Καθυστέρηση', 'Ολοκληρωμένο', 'Ακυρωμένο'];
 
 const getProjectStatus = (project: Project): Status => {
     if (project.status === 'Ακυρωμένο') return 'Ακυρωμένο';
@@ -29,7 +29,7 @@ const getProjectStatus = (project: Project): Status => {
         return 'Σε Καθυστέρηση';
     }
 
-    return 'Ενεργό';
+    return 'Εντός Χρονοδιαγράμματος';
 }
 
 export default function ProjectsPage() {
@@ -47,10 +47,12 @@ export default function ProjectsPage() {
   const filteredProjects = useMemo(() => {
     let projs = augmentedProjects;
 
-    if (activeTab !== 'Όλα') {
+    if (activeTab === 'Εντός Χρονοδιαγράμματος') {
+        projs = projs.filter(p => p.derivedStatus === 'Εντός Χρονοδιαγράμματος' || p.derivedStatus === 'Σε Καθυστέρηση');
+    } else if (activeTab !== 'Όλα') {
         projs = projs.filter(p => p.derivedStatus === activeTab);
     }
-
+    
     if (debouncedSearchTerm) {
       const lowercasedTerm = debouncedSearchTerm.toLowerCase();
       projs = projs.filter(p =>
@@ -66,14 +68,18 @@ export default function ProjectsPage() {
      const counts: Record<Status, number> = {
         'Όλα': projects.length,
         'Προσφορά': 0,
-        'Ενεργό': 0,
+        'Εντός Χρονοδιαγράμματος': 0,
         'Σε Καθυστέρηση': 0,
         'Ολοκληρωμένο': 0,
-        'Ακυρωμένο': 0
+        'Ακυρωμένο': 0,
     };
     augmentedProjects.forEach(p => {
         counts[p.derivedStatus]++;
     });
+    
+    const activeCount = augmentedProjects.filter(p => p.derivedStatus === 'Εντός Χρονοδιαγράμματος' || p.derivedStatus === 'Σε Καθυστέρηση').length;
+    counts['Εντός Χρονοδιαγράμματος'] = activeCount;
+
     return counts;
   }, [projects.length, augmentedProjects]);
 
@@ -83,6 +89,11 @@ export default function ProjectsPage() {
     await deleteProject(projectToDelete.id);
     setProjectToDelete(null);
   };
+  
+  const tabDisplayName = (tab: Status) => {
+    if(tab === 'Εντός Χρονοδιαγράμματος') return 'Ενεργά';
+    return tab;
+  }
   
   return (
     <main className="flex-1 p-6 bg-background">
@@ -114,13 +125,13 @@ export default function ProjectsPage() {
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Status)}>
             <TabsList className="bg-transparent p-0 border-b border-border rounded-none">
                 {STATUS_TABS.map(tab => (
-                   (statusCounts[tab] > 0 || tab === 'Όλα') && (
+                   (tab === 'Όλα' || statusCounts[tab] > 0) && (
                      <TabsTrigger 
                         key={tab} 
                         value={tab}
                         className="bg-transparent shadow-none rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 border-primary data-[state=active]:text-primary"
                     >
-                        {tab} ({statusCounts[tab]})
+                        {tabDisplayName(tab)} ({tab === 'Εντός Χρονοδιαγράμματος' ? statusCounts['Εντός Χρονοδιαγράμματος'] : statusCounts[tab]})
                     </TabsTrigger>
                    )
                 ))}
@@ -135,7 +146,7 @@ export default function ProjectsPage() {
                 )}
                  {loading ? (
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-lg" />)}
+                        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[280px] rounded-lg" />)}
                     </div>
                 ) : filteredProjects.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
