@@ -25,12 +25,15 @@ export default function Home() {
   const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
-    // Check configuration only on the client-side to prevent hydration errors
     const checkConfig = () => {
-      const apps = getApps();
-      if (!apps.length) return false;
-      const config = getApp().options;
-      return !!(config && config.apiKey && !config.apiKey.startsWith("TODO:"));
+      try {
+        const apps = getApps();
+        if (!apps.length) return false;
+        const config = getApp().options;
+        return !!(config && config.apiKey && !config.apiKey.includes("AIzaSyC3c-3X8P0o_m7Av6iuixd673ddtDM4d4s"));
+      } catch {
+        return false;
+      }
     };
 
     const configured = checkConfig();
