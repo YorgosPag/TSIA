@@ -3,7 +3,7 @@
 
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,50 +27,50 @@ export default function Home() {
   const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
-      setLoading(true);
-      try {
-        const entriesCollectionRef = collection(db, "tsia-contacts");
-        const q = query(entriesCollectionRef, orderBy("createdAt", "desc"));
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const fetchedEntries = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          } as Entry));
+    if (!configIsValid()) {
+        setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
+        setLoading(false);
+        return;
+    }
 
-          setEntries(fetchedEntries);
-          if (selectedEntry) {
-              const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
-              setSelectedEntry(updatedSelected);
-          }
-          setLoading(false);
-          setError(null);
-        }, (err) => {
-          console.error("Firestore snapshot error:", err);
-          if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
-            setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
-          } else if (err.message.includes('firestore/unavailable')) {
-               setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
-          } else if (err.message.includes('requires an index')) {
-               setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
-          } else if (err.code === 'failed-precondition') {
-               setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
-          } else {
-            setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser για περισσότερες λεπτομέρειες.");
-          }
-          setLoading(false);
-        });
+    setLoading(true);
+    try {
+      const entriesCollectionRef = collection(db, "tsia-contacts");
+      const q = query(entriesCollectionRef, orderBy("createdAt", "desc"));
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedEntries = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Entry));
 
-        return () => unsubscribe();
-      } catch (e: any) {
-        console.error("Error setting up Firestore listener:", e);
-        if(e.message.includes("Must be a valid string path")) {
-            setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
-        } else {
-            setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
+        setEntries(fetchedEntries);
+        if (selectedEntry) {
+            const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
+            setSelectedEntry(updatedSelected);
         }
         setLoading(false);
-      }
+        setError(null);
+      }, (err) => {
+        console.error("Firestore snapshot error:", err);
+        if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
+          setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
+        } else if (err.message.includes('firestore/unavailable')) {
+             setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
+        } else if (err.message.includes('requires an index')) {
+             setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
+        } else {
+          setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser για περισσότερες λεπτομέρειες.");
+        }
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (e: any) {
+      console.error("Error setting up Firestore listener:", e);
+      setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
+      setLoading(false);
+    }
   }, [selectedEntry?.id]);
 
   const handleAddClick = async () => {
