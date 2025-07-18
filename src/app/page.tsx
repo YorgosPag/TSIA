@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, type KeyboardEvent } from 'react';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query } from 'firebase/firestore';
 import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,10 +25,14 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(configIsValid);
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    // Check config validity on the client side
+    const configured = configIsValid();
+    setIsFirebaseConfigured(configured);
+
+    if (!configured) {
         setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο 'src/lib/firebase.ts'.");
         setLoading(false);
         return;
@@ -42,48 +46,49 @@ export default function Home() {
     }
 
     setLoading(true);
-    let unsubscribe: () => void;
-    try {
-      const entriesCollectionRef = collection(db, "tsia-entries");
-      const q = query(entriesCollectionRef, orderBy("createdAt", "desc"));
+    const entriesCollectionRef = collection(db, "tsia-entries");
+    // Removed orderBy to work with basic Firestore queries in a static export setup
+    const q = query(entriesCollectionRef);
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedEntries = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Entry));
       
-      unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedEntries = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Entry));
-        setEntries(fetchedEntries);
-        if (selectedEntry) {
-            const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
-            setSelectedEntry(updatedSelected);
-        }
-        setLoading(false);
-        setError(null);
-      }, (err) => {
-        console.error("Firestore snapshot error:", err);
-        if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
-          setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
-        } else if (err.message.includes('firestore/unavailable')) {
-             setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
-        }
-        else {
-          setError("Αποτυχία φόρτωσης δεδομένων.");
-        }
-        setLoading(false);
+      // Sort entries by createdAt on the client-side
+      fetchedEntries.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+          return dateB.getTime() - dateA.getTime();
       });
 
-    } catch (e: any) {
-        console.error("Firebase subscription error:", e);
-        setError(`Προέκυψε σφάλμα κατά τη σύνδεση με το Firestore: ${e.message}`);
-        setLoading(false);
-    }
-    
+      setEntries(fetchedEntries);
+      if (selectedEntry) {
+          const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
+          setSelectedEntry(updatedSelected);
+      }
+      setLoading(false);
+      setError(null);
+    }, (err) => {
+      console.error("Firestore snapshot error:", err);
+      if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
+        setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
+      } else if (err.message.includes('firestore/unavailable')) {
+           setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
+      } else if (err.message.includes('requires an index')) {
+           setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
+      }
+      else {
+        setError("Αποτυχία φόρτωσης δεδομένων.");
+      }
+      setLoading(false);
+    });
+
     return () => {
-        if (unsubscribe) {
-            unsubscribe();
-        }
+        unsubscribe();
     };
-  }, [isFirebaseConfigured, selectedEntry?.id]);
+  }, [selectedEntry?.id]);
 
   const handleAddClick = async () => {
     if (name.trim() && db) {

@@ -8,7 +8,7 @@ To get started, take a look at src/app/page.tsx.
 
 ## How to Deploy Your App to the Internet
 
-To publish your application online, you can use **Firebase App Hosting**. You will need to use the Firebase Command Line Interface (CLI) from your computer's terminal.
+To publish your application online, you can use **Firebase Hosting**. You will need to use the Firebase Command Line Interface (CLI) from your computer's terminal.
 
 ### Step 1: Install the Firebase CLI
 
@@ -28,15 +28,15 @@ firebase login
 
 Navigate to your project's root folder in the terminal and run this command. It will link your local code to your Firebase project.
 ```bash
-firebase init apphosting
+firebase init hosting
 ```
-When prompted, select the Firebase project you've been using (e.g., `tsia-96afd`).
+When prompted, select the Firebase project you've been using. When it asks for your public directory, just press Enter to accept the default. When it asks "Configure as a single-page app?", type 'y' and press Enter.
 
 ### Step 4: Deploy Your Application
 
 This is the final step! Run the following command. The CLI will build your app and upload it to Firebase's servers.
 ```bash
-firebase deploy
+firebase deploy --only hosting
 ```
 
 After the command finishes, it will give you a unique URL (e.g., `https://your-app-name.web.app`). This is the live link to your application on the internet!

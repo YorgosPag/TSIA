@@ -1,4 +1,4 @@
-// Import the functions you need from the SDKs you need
+
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
@@ -14,12 +14,17 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Function to check if the config is still using placeholder values
-function isConfigValid(config: FirebaseOptions): boolean {
-    return !!config.apiKey && !config.apiKey.startsWith("YOUR_");
+export function configIsValid(): boolean {
+    return !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");
 }
 
-const configIsValid = isConfigValid(firebaseConfig);
-const app = configIsValid ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()) : null;
+let app;
+if (configIsValid() && !getApps().length) {
+    app = initializeApp(firebaseConfig);
+} else if(configIsValid()) {
+    app = getApp();
+}
+
 const db = app ? getFirestore(app) : null;
 
-export { app, db, configIsValid };
+export { app, db };
