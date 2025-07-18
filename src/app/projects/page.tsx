@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,19 @@ import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from "date-fns";
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+
 
 interface Project {
   id: string;
@@ -30,6 +43,9 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   
   useEffect(() => {
     if (!configIsValid() || !db) {
@@ -80,7 +96,43 @@ export default function ProjectsPage() {
       setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
       setLoading(false);
     }
-  }, []);
+  }, [selectedProject]);
+
+  const handleDeleteProject = async () => {
+    if (!db || !projectToDelete) return;
+
+    try {
+        const currentlySelectedId = selectedProject?.id;
+        const projectIndex = projects.findIndex(p => p.id === projectToDelete.id);
+
+        await deleteDoc(doc(db, 'tsia-projects', projectToDelete.id));
+        toast({ title: "Επιτυχία", description: `Το έργο "${projectToDelete.title}" διαγράφηκε.` });
+
+        if(currentlySelectedId === projectToDelete.id) {
+            const newProjects = projects.filter(p => p.id !== projectToDelete.id);
+            if (newProjects.length > 0) {
+                setSelectedProject(newProjects[Math.min(projectIndex, newProjects.length - 1)]);
+            } else {
+                setSelectedProject(null);
+            }
+        }
+    } catch (err) {
+        console.error("Delete project error:", err);
+        toast({
+            variant: "destructive",
+            title: "Σφάλμα",
+            description: "Αποτυχία διαγραφής του έργου.",
+        });
+    } finally {
+        setProjectToDelete(null);
+    }
+  };
+
+  const handleEditClick = () => {
+    if(selectedProject) {
+      router.push(`/projects/${selectedProject.id}/edit`);
+    }
+  }
   
   return (
     <main className="flex flex-1 bg-background">
@@ -142,8 +194,8 @@ export default function ProjectsPage() {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline"><Edit className="mr-2 h-4 w-4"/>Επεξεργασία</Button>
-                        <Button variant="outline" color="destructive"><Trash2 className="mr-2 h-4 w-4"/>Διαγραφή</Button>
+                        <Button variant="outline" onClick={handleEditClick}><Edit className="mr-2 h-4 w-4"/>Επεξεργασία</Button>
+                        <Button variant="outline" color="destructive" onClick={() => setProjectToDelete(selectedProject)}><Trash2 className="mr-2 h-4 w-4"/>Διαγραφή</Button>
                     </div>
                 </div>
 
@@ -169,6 +221,24 @@ export default function ProjectsPage() {
                 )
             )}
         </div>
+
+        <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Είστε βέβαιοι για τη διαγραφή του έργου "{projectToDelete?.title}" ;</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Το έργο θα διαγραφεί οριστικά.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setProjectToDelete(null)}>Άκυρο</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Διαγραφή
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </main>
   );
 }
