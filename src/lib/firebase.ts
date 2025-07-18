@@ -13,15 +13,11 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 export function configIsValid(): boolean {
-    return !!(
-      firebaseConfig.apiKey &&
-      firebaseConfig.projectId &&
-      !firebaseConfig.apiKey.startsWith('YOUR_') &&
-      !firebaseConfig.projectId.startsWith('YOUR_')
-    );
+    const config = firebaseConfig;
+    return !!(config.apiKey && config.projectId && !config.apiKey.startsWith('YOUR_'));
 }
 
-const app = configIsValid() && getApps().length === 0 ? initializeApp(firebaseConfig) : (getApps().length > 0 ? getApp() : null);
+const app = configIsValid() ? (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)) : null;
 const db = app ? getFirestore(app) : null;
 
 export { app, db };
