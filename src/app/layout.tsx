@@ -10,11 +10,15 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarGroup,
+  SidebarGroupLabel
 } from '@/components/ui/sidebar';
-import { BookUser, LayoutDashboard, GanttChart, Phone, Users, Settings, CircleUser } from 'lucide-react';
+import { BookUser, LayoutDashboard, GanttChart, BarChart, FileText, Mail, List, Archive, Moon, Bell } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',
@@ -27,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -43,24 +47,33 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <SidebarProvider>
           <div className="flex">
-            <Sidebar>
-              <SidebarHeader className="p-4">
+            <Sidebar collapsible="icon">
+              <SidebarHeader className="p-4 h-16 flex items-center">
                  <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 bg-primary flex items-center justify-center">
                         <span className="text-xl font-bold text-primary-foreground">N</span>
                     </Avatar>
-                    <h2 className="text-xl font-bold">NESTOR</h2>
+                    <div className="flex flex-col">
+                        <h2 className="text-lg font-bold">NESTOR</h2>
+                        <span className="text-xs text-muted-foreground">eco</span>
+                    </div>
                 </div>
               </SidebarHeader>
               <SidebarContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton href="#">
-                      <LayoutDashboard />
-                      Επιτελική Εικόνα
+                      <BarChart />
+                      Πίνακας Ελέγχου
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton href="#">
+                      <GanttChart />
+                      Λίστα Έργων
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   <SidebarMenuItem>
                     <SidebarMenuButton href="/" isActive>
                       <BookUser />
                       Λίστα Επαφών
@@ -68,32 +81,49 @@ export default function RootLayout({
                   </SidebarMenuItem>
                    <SidebarMenuItem>
                     <SidebarMenuButton href="#">
-                      <GanttChart />
-                      Πίνακας Ενεργειών
+                      <FileText />
+                      Αποτυπώσεις
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton href="#">
-                      <Phone />
-                      Ψηφιακό Τηλέφωνο
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton href="#">
-                      <Users />
-                      Χρήστες
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton href="#">
-                      <Settings />
-                      Ρυθμίσεις
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <SidebarGroup>
+                      <SidebarGroupLabel>ΔΙΑΧΕΙΡΙΣΗ</SidebarGroupLabel>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton href="#">
+                          <List />
+                          Προσαρμοσμένες Λίστες
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton href="#">
+                          <Archive />
+                          Αρχείο Email
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                  </SidebarGroup>
                 </SidebarMenu>
               </SidebarContent>
             </Sidebar>
-            <SidebarInset>{children}</SidebarInset>
+            <SidebarInset>
+                <header className="flex h-16 items-center justify-between border-b bg-card px-6">
+                    <div className="flex items-center gap-4">
+                        <div className="relative w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Αναζήτηση επαφής ή έργου..." className="pl-10 bg-background" />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon"><LayoutDashboard /></Button>
+                        <Button variant="ghost" size="icon"><Moon /></Button>
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-right">Νέστωρ Δοκιμαστικός</span>
+                             <Avatar className="h-9 w-9">
+                                <AvatarFallback className="bg-primary text-primary-foreground">N</AvatarFallback>
+                            </Avatar>
+                        </div>
+                    </div>
+                </header>
+                {children}
+            </SidebarInset>
           </div>
         </SidebarProvider>
         <Toaster />

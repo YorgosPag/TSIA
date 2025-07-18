@@ -13,7 +13,6 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 export function configIsValid(): boolean {
-    // This function now robustly checks if the essential config values are present and not placeholders.
     return !!(
       firebaseConfig.apiKey &&
       firebaseConfig.projectId &&
@@ -22,8 +21,7 @@ export function configIsValid(): boolean {
     );
 }
 
-// Initialize Firebase
-const app = configIsValid() ? (!getApps().length ? initializeApp(firebaseConfig) : getApp()) : null;
+const app = configIsValid() && getApps().length === 0 ? initializeApp(firebaseConfig) : (getApps().length > 0 ? getApp() : null);
 const db = app ? getFirestore(app) : null;
 
 export { app, db };
