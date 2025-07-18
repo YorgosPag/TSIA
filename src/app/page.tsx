@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -170,6 +169,7 @@ export default function ContactsPage() {
         isOpen={!!deletingContact}
         onClose={() => setDeletingContact(null)}
         onConfirm={handleConfirmDelete}
+        contact={deletingContact}
       />
     </main>
   );

@@ -1,24 +1,34 @@
+"use client";
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import type { Contact } from "@/features/contacts/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { Project } from "../types";
 
-interface ContactDeleteDialogProps {
+interface ProjectDeleteDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
-    contact: Contact | null;
+    project: Project | null;
 }
 
-export function ContactDeleteDialog({ isOpen, onClose, onConfirm, contact }: ContactDeleteDialogProps) {
-    if (!contact) return null;
+export function ProjectDeleteDialog({ isOpen, onClose, onConfirm, project }: ProjectDeleteDialogProps) {
+    if (!project) return null;
 
     return (
         <AlertDialog open={isOpen} onOpenChange={onClose}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Είστε βέβαιοι;</AlertDialogTitle>
+                    <AlertDialogTitle>Είστε βέβαιοι για τη διαγραφή του έργου "{project.title}" ;</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Η επαφή θα διαγραφεί οριστικά από τη βάση δεδομένων.
+                        Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Το έργο θα διαγραφεί οριστικά.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
