@@ -19,10 +19,7 @@ function isConfigValid(config: FirebaseOptions): boolean {
 }
 
 const configIsValid = isConfigValid(firebaseConfig);
-
-// Initialize Firebase only if the config is valid
-const app = configIsValid && getApps().length === 0 ? initializeApp(firebaseConfig) : (configIsValid ? getApp() : null);
+const app = configIsValid ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()) : null;
 const db = app ? getFirestore(app) : null;
 
-
-export { app, db };
+export { app, db, configIsValid };

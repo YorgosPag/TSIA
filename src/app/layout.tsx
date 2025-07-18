@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Users } from 'lucide-react';
+import { BookUser } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
@@ -48,8 +48,8 @@ export default function RootLayout({
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton href="/" isActive>
-                      <Users />
-                      Επαφές
+                      <BookUser />
+                      Καταχωρήσεις
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -63,3 +63,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

@@ -3,56 +3,59 @@
 
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, configIsValid } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, Trash2, Edit, Save, XCircle, UserPlus, UserSquare } from 'lucide-react';
+import { TriangleAlert, Trash2, Edit, Save, XCircle, UserPlus, BookUser } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-interface Contact {
+interface Entry {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   createdAt: any;
 }
 
 export default function Home() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [name, setName] = useState('');
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingContactId, setEditingContactId] = useState<string | null>(null);
-  const [editingFirstName, setEditingFirstName] = useState('');
-  const [editingLastName, setEditingLastName] = useState('');
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(configIsValid);
 
   useEffect(() => {
-    if (!db) {
+    if (!isFirebaseConfigured) {
         setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο 'src/lib/firebase.ts'.");
         setLoading(false);
-        setIsFirebaseConfigured(false);
         return;
     }
-    setIsFirebaseConfigured(true);
 
+    // Ensure db is not null before proceeding
+    if (!db) {
+        setError("Η αρχικοποίηση της βάσης δεδομένων απέτυχε.");
+        setLoading(false);
+        return;
+    }
+
+    setLoading(true);
     let unsubscribe: () => void;
     try {
-      const contactsCollectionRef = collection(db, "tsia-contacts");
-      const q = query(contactsCollectionRef, orderBy("createdAt", "desc"));
+      const entriesCollectionRef = collection(db, "tsia-entries");
+      const q = query(entriesCollectionRef, orderBy("createdAt", "desc"));
       
       unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedContacts = snapshot.docs.map((doc) => ({
+        const fetchedEntries = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        } as Contact));
-        setContacts(fetchedContacts);
-        if (selectedContact) {
-            const updatedSelected = fetchedContacts.find(c => c.id === selectedContact.id) || null;
-            setSelectedContact(updatedSelected);
+        } as Entry));
+        setEntries(fetchedEntries);
+        if (selectedEntry) {
+            const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
+            setSelectedEntry(updatedSelected);
         }
         setLoading(false);
         setError(null);
@@ -60,15 +63,18 @@ export default function Home() {
         console.error("Firestore snapshot error:", err);
         if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
           setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
-        } else {
+        } else if (err.message.includes('firestore/unavailable')) {
+             setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
+        }
+        else {
           setError("Αποτυχία φόρτωσης δεδομένων.");
         }
         setLoading(false);
       });
 
     } catch (e: any) {
-        console.error("Firebase initialization error:", e);
-        setError(`Η σύνδεση με το Firebase απέτυχε! Λεπτομέρειες: ${e.message}`);
+        console.error("Firebase subscription error:", e);
+        setError(`Προέκυψε σφάλμα κατά τη σύνδεση με το Firestore: ${e.message}`);
         setLoading(false);
     }
     
@@ -77,20 +83,18 @@ export default function Home() {
             unsubscribe();
         }
     };
-  }, [selectedContact?.id]);
+  }, [isFirebaseConfigured, selectedEntry?.id]);
 
   const handleAddClick = async () => {
-    if (firstName.trim() && lastName.trim() && db) {
+    if (name.trim() && db) {
       try {
         setError(null);
-        const contactsCollectionRef = collection(db, "tsia-contacts");
-        await addDoc(contactsCollectionRef, { 
-          firstName: firstName, 
-          lastName: lastName,
+        const entriesCollectionRef = collection(db, "tsia-entries");
+        await addDoc(entriesCollectionRef, { 
+          name: name,
           createdAt: serverTimestamp() 
         });
-        setFirstName('');
-        setLastName('');
+        setName('');
       } catch (e) {
         console.error("Error adding document: ", e);
         setError("Αποτυχία προσθήκης στη βάση δεδομένων.");
@@ -104,26 +108,23 @@ export default function Home() {
     }
   };
 
-  const handleEditClick = (contact: Contact) => {
-    setEditingContactId(contact.id);
-    setEditingFirstName(contact.firstName);
-    setEditingLastName(contact.lastName);
+  const handleEditClick = (entry: Entry) => {
+    setEditingEntryId(entry.id);
+    setEditingName(entry.name);
   };
 
   const handleCancelEdit = () => {
-    setEditingContactId(null);
-    setEditingFirstName('');
-    setEditingLastName('');
+    setEditingEntryId(null);
+    setEditingName('');
   };
 
   const handleSaveClick = async (id: string) => {
-    if (editingFirstName.trim() && editingLastName.trim() && db) {
+    if (editingName.trim() && db) {
       try {
         setError(null);
-        const contactDocRef = doc(db, "tsia-contacts", id);
-        await updateDoc(contactDocRef, { 
-            firstName: editingFirstName,
-            lastName: editingLastName
+        const entryDocRef = doc(db, "tsia-entries", id);
+        await updateDoc(entryDocRef, { 
+            name: editingName
         });
         handleCancelEdit();
       } catch (e) {
@@ -137,20 +138,20 @@ export default function Home() {
     if (!db) return;
     try {
       setError(null);
-      if(selectedContact?.id === id) {
-        setSelectedContact(null);
+      if(selectedEntry?.id === id) {
+        setSelectedEntry(null);
       }
-      const contactDocRef = doc(db, "tsia-contacts", id);
-      await deleteDoc(contactDocRef);
+      const entryDocRef = doc(db, "tsia-entries", id);
+      await deleteDoc(entryDocRef);
     } catch (e) {
       console.error("Error deleting document: ", e);
       setError("Αποτυχία διαγραφής από τη βάση δεδομένων.");
     }
   };
 
-  const handleSelectContact = (contact: Contact) => {
-    if(editingContactId !== contact.id) {
-        setSelectedContact(contact);
+  const handleSelectEntry = (entry: Entry) => {
+    if(editingEntryId !== entry.id) {
+        setSelectedEntry(entry);
     }
   }
 
@@ -158,9 +159,9 @@ export default function Home() {
     <main className="flex min-h-screen flex-col p-4">
       <div className="flex w-full items-center justify-between pb-4">
           <SidebarTrigger />
-          <h1 className="text-2xl font-semibold flex-grow text-center">Λίστα Επαφών</h1>
+          <h1 className="text-2xl font-semibold flex-grow text-center">Καταχωρήσεις</h1>
       </div>
-       { !isFirebaseConfigured && !loading && (
+       { !isFirebaseConfigured && (
            <Alert variant="destructive" className="mb-4">
               <TriangleAlert className="h-4 w-4" />
               <AlertTitle>Σφάλμα Ρύθμισης Firebase</AlertTitle>
@@ -174,40 +175,32 @@ export default function Home() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <UserPlus />
-                        Νέα Επαφή
+                        Νέα Καταχώρηση
                     </CardTitle>
-                    <CardDescription>Προσθέστε όνομα και επώνυμο.</CardDescription>
+                    <CardDescription>Προσθέστε μια νέα καταχώρηση.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Input
                         type="text"
-                        placeholder="Όνομα"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Όνομα καταχώρησης"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         onKeyDown={handleAddKeyDown}
                         disabled={!isFirebaseConfigured}
                     />
-                    <Input
-                        type="text"
-                        placeholder="Επώνυμο"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        onKeyDown={handleAddKeyDown}
-                        disabled={!isFirebaseConfigured}
-                    />
-                    <Button onClick={handleAddClick} disabled={!firstName.trim() || !lastName.trim() || !isFirebaseConfigured} className="w-full">
-                        Προσθήκη Επαφής
+                    <Button onClick={handleAddClick} disabled={!name.trim() || !isFirebaseConfigured} className="w-full">
+                        Προσθήκη Καταχώρησης
                     </Button>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Οι Επαφές μου</CardTitle>
+                    <CardTitle>Οι Καταχωρήσεις μου</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                    <p className="text-center text-muted-foreground">Φόρτωση επαφών...</p>
+                    <p className="text-center text-muted-foreground">Φόρτωση καταχωρήσεων...</p>
                     ) : error && isFirebaseConfigured ? (
                     <Alert variant="destructive">
                         <TriangleAlert className="h-4 w-4" />
@@ -215,44 +208,37 @@ export default function Home() {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                     ) : !isFirebaseConfigured ? (
-                     <p className="text-center text-muted-foreground italic">Ρυθμίστε το Firebase για να δείτε τις επαφές.</p>
-                    ) : contacts.length === 0 ? (
-                    <p className="text-center text-muted-foreground italic">Δεν υπάρχει καμία επαφή.</p>
+                     <p className="text-center text-muted-foreground italic">Ρυθμίστε το Firebase για να δείτε τις καταχωρήσεις.</p>
+                    ) : entries.length === 0 ? (
+                    <p className="text-center text-muted-foreground italic">Δεν υπάρχει καμία καταχώρηση.</p>
                     ) : (
                     <ul className="space-y-2">
-                        {contacts.map((contact) => (
-                        <li key={contact.id} className={`rounded-md border p-2 transition-colors cursor-pointer hover:bg-muted ${selectedContact?.id === contact.id ? 'bg-accent text-accent-foreground' : ''}`}
-                            onClick={() => handleSelectContact(contact)}
+                        {entries.map((entry) => (
+                        <li key={entry.id} className={`rounded-md border p-2 transition-colors cursor-pointer hover:bg-muted ${selectedEntry?.id === entry.id ? 'bg-accent text-accent-foreground' : ''}`}
+                            onClick={() => handleSelectEntry(entry)}
                         >
-                            {editingContactId === contact.id ? (
+                            {editingEntryId === entry.id ? (
                             <div className="space-y-2">
                                 <Input
                                     type="text"
-                                    value={editingFirstName}
-                                    onChange={(e) => setEditingFirstName(e.target.value)}
+                                    value={editingName}
+                                    onChange={(e) => setEditingName(e.target.value)}
                                     className="flex-grow"
                                     autoFocus
                                     onClick={(e) => e.stopPropagation()}
-                                />
-                                <Input
-                                    type="text"
-                                    value={editingLastName}
-                                    onChange={(e) => setEditingLastName(e.target.value)}
-                                    className="flex-grow"
-                                    onClick={(e) => e.stopPropagation()}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSaveClick(contact.id)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSaveClick(entry.id)}
                                 />
                                 <div className="flex items-center justify-end">
-                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSaveClick(contact.id);}}><Save className="h-4 w-4 text-green-600" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSaveClick(entry.id);}}><Save className="h-4 w-4 text-green-600" /></Button>
                                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleCancelEdit();}}><XCircle className="h-4 w-4 text-gray-500" /></Button>
                                 </div>
                             </div>
                             ) : (
                             <div className="flex items-center justify-between">
-                                <span className="flex-grow font-medium">{contact.firstName} {contact.lastName}</span>
+                                <span className="flex-grow font-medium">{entry.name}</span>
                                 <div className="flex items-center">
-                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(contact);}}><Edit className="h-4 w-4 text-blue-600" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleDeleteClick(contact.id);}}><Trash2 className="h-4 w-4 text-red-600" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(entry);}}><Edit className="h-4 w-4 text-blue-600" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleDeleteClick(entry.id);}}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                                 </div>
                             </div>
                             )}
@@ -269,30 +255,26 @@ export default function Home() {
             <Card className="sticky top-4">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
-                        <UserSquare />
-                         Στοιχεία Επαφής
+                        <BookUser />
+                         Στοιχεία Καταχώρησης
                     </CardTitle>
-                    <CardDescription>Επιλέξτε μια επαφή από τη λίστα για να δείτε τα στοιχεία της εδώ.</CardDescription>
+                    <CardDescription>Επιλέξτε μια καταχώρηση από τη λίστα για να δείτε τα στοιχεία της εδώ.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {selectedContact ? (
+                    {selectedEntry ? (
                          <div className="space-y-4">
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground">Όνομα</h3>
-                                <p className="text-xl font-semibold">{selectedContact.firstName}</p>
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground">Επώνυμο</h3>
-                                <p className="text-xl font-semibold">{selectedContact.lastName}</p>
+                                <p className="text-xl font-semibold">{selectedEntry.name}</p>
                             </div>
                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground">ID Επαφής</h3>
-                                <p className="text-xs text-muted-foreground">{selectedContact.id}</p>
+                                <h3 className="text-sm font-medium text-muted-foreground">ID Εγγραφής</h3>
+                                <p className="text-xs text-muted-foreground">{selectedEntry.id}</p>
                             </div>
                          </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">{!isFirebaseConfigured ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί επαφή'}</p>
+                            <p className="text-muted-foreground">{!isFirebaseConfigured ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί καταχώρηση'}</p>
                         </div>
                     )}
                 </CardContent>
