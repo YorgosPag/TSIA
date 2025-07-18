@@ -6,7 +6,7 @@ import { AccordionItem, AccordionTrigger, AccordionContent } from '@/components/
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Edit, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/features/toast';
 import { CustomListItem } from './CustomListItem';
 import { CustomListItemForm } from './CustomListItemForm';
 import type { CustomList, ListItem } from '../types';

@@ -1,17 +1,14 @@
 "use client"
 
-import type { ChartConfig } from "./ChartContainer"
-import { THEMES } from "./ChartContainer"
+import type { ChartConfig } from "./types";
+
+const THEMES = { light: "", dark: ".dark" } as const;
 
 export const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color
-  )
-
-  if (!colorConfig.length) {
-    return null
-  }
-
+    ([, conf]) => conf.theme || conf.color
+  );
+  if (!colorConfig.length) return null;
   return (
     <style
       dangerouslySetInnerHTML={{
@@ -23,8 +20,8 @@ ${colorConfig
   .map(([key, itemConfig]) => {
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+      itemConfig.color;
+    return color ? `  --color-${key}: ${color};` : null;
   })
   .join("\n")}
 }
@@ -33,5 +30,5 @@ ${colorConfig
           .join("\n"),
       }}
     />
-  )
-}
+  );
+};

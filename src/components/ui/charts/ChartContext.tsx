@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { ChartConfig } from "./ChartContainer"
+import type { ChartConfig } from "./types"
 
 type ChartContextProps = {
   config: ChartConfig

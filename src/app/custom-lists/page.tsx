@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/features/toast';
 import { useSeedCustomLists } from '@/features/custom-lists/hooks/useSeedCustomLists';
 import { useCustomLists } from '@/features/custom-lists/hooks/useCustomLists';
 import { CustomListForm } from '@/features/custom-lists/components/CustomListForm';

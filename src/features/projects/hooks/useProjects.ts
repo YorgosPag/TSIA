@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { db, configIsValid } from '@/lib/firebase';
-import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/features/toast';
 import type { Project } from '../types';
 
 export function useProjects() {
@@ -13,8 +14,8 @@ export function useProjects() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!configIsValid() || !db) {
-        setError("Η σύνδεση με το Firebase απέτυχε!");
+    if (!db) {
+        setError("Η σύνδεση με το Firebase απέτυχε.");
         setLoading(false);
         return;
     }
@@ -34,7 +35,15 @@ export function useProjects() {
       setError(null);
     }, (err) => {
       console.error("Firestore snapshot error:", err);
-      setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser.");
+      if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
+          setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
+        } else if (err.message.includes('firestore/unavailable')) {
+             setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
+        } else if (err.message.includes('requires an index')) {
+             setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
+        } else {
+          setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser για περισσότερες λεπτομέρειες.");
+        }
       setLoading(false);
     });
 

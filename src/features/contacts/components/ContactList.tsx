@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -10,6 +13,8 @@ interface ContactListProps {
     selectedContactId?: string;
     onSelectContact: (contact: Contact) => void;
     loading: boolean;
+    onLoadMore: () => void;
+    hasMore: boolean;
 }
 
 const getDisplayName = (contact: Contact) => {
@@ -17,8 +22,7 @@ const getDisplayName = (contact: Contact) => {
     return fullName || contact.companyName;
 };
 
-export function ContactList({ contacts, selectedContactId, onSelectContact, loading }: ContactListProps) {
-    // TODO: Implement search functionality
+export function ContactList({ contacts, selectedContactId, onSelectContact, loading, onLoadMore, hasMore }: ContactListProps) {
     const [searchTerm, setSearchTerm] = useState('');
 
     return (
@@ -33,25 +37,38 @@ export function ContactList({ contacts, selectedContactId, onSelectContact, load
             {loading ? (
                 <div className="p-4 text-center text-muted-foreground">Φόρτωση επαφών...</div>
             ) : (
-                <nav className="flex flex-col gap-1 px-2">
-                    {contacts.map(contact => (
-                        <Button
-                            key={contact.id}
-                            variant={selectedContactId === contact.id ? 'secondary' : 'ghost'}
-                            className="w-full justify-start h-auto py-2"
-                            onClick={() => onSelectContact(contact)}
-                        >
-                             <ContactAvatar contact={contact} className="h-8 w-8 mr-3"/>
-                            <div className="flex flex-col items-start">
-                                <span className="font-medium">{getDisplayName(contact)}</span>
-                                <span className="text-xs text-muted-foreground">{contact.role}</span>
-                            </div>
-                        </Button>
-                    ))}
-                </nav>
+                <div className="flex-1 overflow-y-auto">
+                    <nav className="flex flex-col gap-1 px-2">
+                        {contacts.map(contact => (
+                            <Button
+                                key={contact.id}
+                                variant={selectedContactId === contact.id ? 'secondary' : 'ghost'}
+                                className="w-full justify-start h-auto py-2"
+                                onClick={() => onSelectContact(contact)}
+                            >
+                                <ContactAvatar contact={contact} className="h-8 w-8 mr-3"/>
+                                <div className="flex flex-col items-start text-left">
+                                    <span className="font-medium">{getDisplayName(contact)}</span>
+                                    <span className="text-xs text-muted-foreground">{contact.role}</span>
+                                </div>
+                            </Button>
+                        ))}
+                    </nav>
+                </div>
+            )}
+            
+            {hasMore && (
+                <div className="p-2 border-t">
+                    <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={onLoadMore}
+                        disabled={loading}
+                    >
+                        {loading ? 'Φόρτωση...' : 'Φόρτωση Περισσότερων'}
+                    </Button>
+                </div>
             )}
         </>
     );
 }
-// Add this import at the top
-import { useState } from 'react';

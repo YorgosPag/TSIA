@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useContacts } from '@/features/contacts/hooks/useContacts';
 import { useRolesList } from '@/features/contacts/hooks/useRolesList';
 import { ContactList } from '@/features/contacts/components/ContactList';
@@ -10,7 +11,7 @@ import { ContactDeleteDialog } from '@/features/contacts/components/ContactDelet
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { TriangleAlert, Plus, BookUser } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/features/toast';
 import type { Contact } from '@/features/contacts/types';
 
 export default function ContactsPage() {
@@ -20,7 +21,9 @@ export default function ContactsPage() {
     error: contactsError, 
     addContact, 
     updateContact, 
-    deleteContact 
+    deleteContact,
+    fetchMoreContacts,
+    hasMore
   } = useContacts();
   
   const { rolesList } = useRolesList();
@@ -31,25 +34,25 @@ export default function ContactsPage() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
   
-  const handleSelectContact = (contact: Contact) => {
+  const handleSelectContact = useCallback((contact: Contact) => {
     setSelectedContact(contact);
-  };
+  }, []);
   
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setEditingContact(null);
     setIsFormOpen(true);
-  };
+  }, []);
   
-  const handleEdit = (contact: Contact) => {
+  const handleEdit = useCallback((contact: Contact) => {
     setEditingContact(contact);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleDeleteRequest = (contact: Contact) => {
+  const handleDeleteRequest = useCallback((contact: Contact) => {
     setDeletingContact(contact);
-  };
+  }, []);
   
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!deletingContact) return;
 
     const contactIndex = contacts.findIndex(c => c.id === deletingContact.id);
@@ -73,22 +76,20 @@ export default function ContactsPage() {
     } finally {
       setDeletingContact(null);
     }
-  };
+  }, [deletingContact, contacts, selectedContact, deleteContact, toast]);
   
-  const handleSaveContact = async (data: Omit<Contact, 'id' | 'createdAt'>) => {
+  const handleSaveContact = useCallback(async (data: Omit<Contact, 'id' | 'createdAt'>) => {
     try {
       if (editingContact) {
         await updateContact(editingContact.id, data);
         toast({ title: "Επιτυχία", description: "Η επαφή ενημερώθηκε." });
-        // Update selected contact if it was the one being edited
         if (selectedContact?.id === editingContact.id) {
-          setSelectedContact({ ...selectedContact, ...data });
+          setSelectedContact(prev => prev ? { ...prev, ...data } : null);
         }
       } else {
-        const newContactId = await addContact({ ...data, createdAt: new Date() });
+        const newContact = await addContact({ ...data, createdAt: new Date() });
         toast({ title: "Επιτυχία", description: "Η επαφή δημιουργήθηκε." });
-         const newContact = contacts.find(c => c.id === newContactId);
-         if(newContact) setSelectedContact(newContact);
+        setSelectedContact(newContact);
       }
       setIsFormOpen(false);
       setEditingContact(null);
@@ -98,21 +99,21 @@ export default function ContactsPage() {
       toast({ variant: "destructive", title: "Σφάλμα", description: "Αποτυχία αποθήκευσης της επαφής." });
       return false;
     }
-  };
+  }, [editingContact, selectedContact, addContact, updateContact, toast]);
   
-    useEffect(() => {
-        if (!loadingContacts && contacts.length > 0 && !selectedContact) {
-            const contactExists = selectedContact && contacts.find(c => c.id === selectedContact.id);
-            if (!contactExists) {
-                setSelectedContact(contacts[0]);
-            }
-        }
-    }, [contacts, loadingContacts, selectedContact]);
+  useEffect(() => {
+      if (!loadingContacts && contacts.length > 0 && !selectedContact) {
+          const contactExists = selectedContact && contacts.find(c => c.id === selectedContact.id);
+          if (!contactExists) {
+              setSelectedContact(contacts[0]);
+          }
+      }
+  }, [contacts, loadingContacts, selectedContact]);
 
 
   return (
     <main className="flex flex-1 bg-background">
-      <div className="w-1/3 border-r bg-card/50 overflow-y-auto">
+      <div className="w-1/3 border-r bg-card/50 overflow-y-auto flex flex-col">
         <div className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -135,7 +136,9 @@ export default function ContactsPage() {
           contacts={contacts}
           selectedContactId={selectedContact?.id}
           onSelectContact={handleSelectContact}
-          loading={loadingContacts}
+          loading={loadingContacts && contacts.length === 0}
+          onLoadMore={fetchMoreContacts}
+          hasMore={hasMore}
         />
       </div>
 
