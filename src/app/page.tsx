@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, type KeyboardEvent } from 'react';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query } from 'firebase/firestore';
-import { db, configIsValid } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,66 +25,56 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
 
   useEffect(() => {
-    const checkConfig = () => {
-      const configured = configIsValid();
-      setIsFirebaseConfigured(configured);
-
-      if (!configured) {
-          setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
-          setLoading(false);
-          return;
-      }
-
       setLoading(true);
-      const entriesCollectionRef = collection(db, "tsia-contacts");
-      const q = query(entriesCollectionRef);
-      
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedEntries = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Entry));
+      try {
+        const entriesCollectionRef = collection(db, "tsia-contacts");
+        const q = query(entriesCollectionRef, orderBy("createdAt", "desc"));
         
-        fetchedEntries.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-            return dateB.getTime() - dateA.getTime();
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedEntries = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          } as Entry));
+
+          setEntries(fetchedEntries);
+          if (selectedEntry) {
+              const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
+              setSelectedEntry(updatedSelected);
+          }
+          setLoading(false);
+          setError(null);
+        }, (err) => {
+          console.error("Firestore snapshot error:", err);
+          if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
+            setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
+          } else if (err.message.includes('firestore/unavailable')) {
+               setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
+          } else if (err.message.includes('requires an index')) {
+               setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
+          } else if (err.code === 'failed-precondition') {
+               setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
+          } else {
+            setError("Αποτυχία φόρτωσης δεδομένων. Ελέγξτε τις ρυθμίσεις του Firebase και την κονσόλα του browser για περισσότερες λεπτομέρειες.");
+          }
+          setLoading(false);
         });
 
-        setEntries(fetchedEntries);
-        if (selectedEntry) {
-            const updatedSelected = fetchedEntries.find(c => c.id === selectedEntry.id) || null;
-            setSelectedEntry(updatedSelected);
+        return () => unsubscribe();
+      } catch (e: any) {
+        console.error("Error setting up Firestore listener:", e);
+        if(e.message.includes("Must be a valid string path")) {
+            setError("Η σύνδεση με το Firebase απέτυχε! Βεβαιωθείτε ότι έχετε ρυθμίσει σωστά τα στοιχεία σας στο αρχείο '.env.local'.");
+        } else {
+            setError(`Προέκυψε ένα σφάλμα: ${e.message}`);
         }
         setLoading(false);
-        setError(null);
-      }, (err) => {
-        console.error("Firestore snapshot error:", err);
-        if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
-          setError("Η πρόσβαση στη βάση δεδομένων απορρίφθηκε. Ελέγξτε τους κανόνες ασφαλείας (Rules) του Firestore.");
-        } else if (err.message.includes('firestore/unavailable')) {
-             setError("Η υπηρεσία Firestore δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και τις ρυθμίσεις του Firebase project.");
-        } else if (err.message.includes('requires an index')) {
-             setError("Η ταξινόμηση απαιτεί τη δημιουργία ενός σύνθετου index στο Firestore. Δοκιμάστε να το δημιουργήσετε από το σύνδεσμο στο μήνυμα σφάλματος στην κονσόλα του browser.");
-        }
-        else {
-          setError("Αποτυχία φόρτωσης δεδομένων.");
-        }
-        setLoading(false);
-      });
-
-      return () => {
-          unsubscribe();
-      };
-    };
-    checkConfig();
+      }
   }, [selectedEntry?.id]);
 
   const handleAddClick = async () => {
-    if (name.trim() && isFirebaseConfigured) {
+    if (name.trim()) {
       try {
         setError(null);
         const entriesCollectionRef = collection(db, "tsia-contacts");
@@ -117,7 +107,7 @@ export default function Home() {
   };
 
   const handleSaveClick = async (id: string) => {
-    if (editingName.trim() && isFirebaseConfigured) {
+    if (editingName.trim()) {
       try {
         setError(null);
         const entryDocRef = doc(db, "tsia-contacts", id);
@@ -133,7 +123,6 @@ export default function Home() {
   };
   
   const handleDeleteClick = async (id: string) => {
-    if (!isFirebaseConfigured) return;
     try {
       setError(null);
       if(selectedEntry?.id === id) {
@@ -159,10 +148,10 @@ export default function Home() {
           <SidebarTrigger />
           <h1 className="text-2xl font-semibold flex-grow text-center">Καταχωρήσεις</h1>
       </div>
-       { !isFirebaseConfigured && (
+       { error && (
            <Alert variant="destructive" className="mb-4">
               <TriangleAlert className="h-4 w-4" />
-              <AlertTitle>Σφάλμα Ρύθμισης Firebase</AlertTitle>
+              <AlertTitle>Σφάλμα</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
           </Alert>
        )}
@@ -184,9 +173,8 @@ export default function Home() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={handleAddKeyDown}
-                        disabled={!isFirebaseConfigured}
                     />
-                    <Button onClick={handleAddClick} disabled={!name.trim() || !isFirebaseConfigured} className="w-full">
+                    <Button onClick={handleAddClick} disabled={!name.trim()} className="w-full">
                         Προσθήκη Καταχώρησης
                     </Button>
                 </CardContent>
@@ -199,16 +187,8 @@ export default function Home() {
                 <CardContent>
                     {loading ? (
                     <p className="text-center text-muted-foreground">Φόρτωση καταχωρήσεων...</p>
-                    ) : error && isFirebaseConfigured ? (
-                    <Alert variant="destructive">
-                        <TriangleAlert className="h-4 w-4" />
-                        <AlertTitle>Σφάλμα</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                    ) : !isFirebaseConfigured ? (
-                     <p className="text-center text-muted-foreground italic">Ρυθμίστε το Firebase για να δείτε τις καταχωρήσεις.</p>
                     ) : entries.length === 0 ? (
-                    <p className="text-center text-muted-foreground italic">Δεν υπάρχει καμία καταχώρηση.</p>
+                    <p className="text-center text-muted-foreground italic">{ error ? 'Η σύνδεση απέτυχε. Ελέγξτε τις ρυθμίσεις.' : 'Δεν υπάρχει καμία καταχώρηση.'}</p>
                     ) : (
                     <ul className="space-y-2">
                         {entries.map((entry) => (
@@ -272,7 +252,7 @@ export default function Home() {
                          </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">{!isFirebaseConfigured ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί καταχώρηση'}</p>
+                            <p className="text-muted-foreground">{ error ? 'Ρυθμίστε το Firebase για να συνεχίσετε.' : 'Δεν έχει επιλεγεί καταχώρηση'}</p>
                         </div>
                     )}
                 </CardContent>
