@@ -561,20 +561,28 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const { isMobile, state } = useSidebar()
-    const Comp = asChild ? Slot : href ? NextLink : "button"
+    const Comp = asChild ? Slot : "button"
     
-    const button = (
-       // @ts-expect-error - It's fine for the props to be what they are.
+    const buttonContent = (
+      // @ts-expect-error - It's fine for the props to be what they are.
       <Comp
         ref={ref}
-        href={href}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       />
-    )
+    );
+
+    const button = href ? (
+      <NextLink href={href} legacyBehavior passHref>
+        {buttonContent}
+      </NextLink>
+    ) : (
+      buttonContent
+    );
+
 
     if (!tooltip) {
       return button
