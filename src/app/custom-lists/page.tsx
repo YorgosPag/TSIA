@@ -14,6 +14,7 @@ import { Accordion } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
 import { TriangleAlert, List, Search } from 'lucide-react';
 import type { CustomList } from '@/features/custom-lists/types';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function CustomListsPage() {
   useSeedCustomLists(); // Ensures data is seeded on first load
@@ -30,6 +31,7 @@ export default function CustomListsPage() {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [itemToDelete, setItemToDelete] = useState<{ listId: string; itemId: string; itemName: string; } | null>(null);
   const [listToDelete, setListToDelete] = useState<CustomList | null>(null);
 
@@ -60,9 +62,9 @@ export default function CustomListsPage() {
   };
 
   const filteredLists = lists.filter(list =>
-    list.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    list.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    list.items.some(item => item.value.toLowerCase().includes(searchTerm.toLowerCase()))
+    list.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    list.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    list.items.some(item => item.value.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
   );
 
   return (
