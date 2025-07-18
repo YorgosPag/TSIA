@@ -17,7 +17,28 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Contact {
   id: string;
@@ -34,6 +55,11 @@ export default function Home() {
   const [entries, setEntries] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!configIsValid()) {
@@ -84,6 +110,75 @@ export default function Home() {
     }
   }, []);
 
+  const handleOpenDialog = (contact: Contact | null = null) => {
+    setEditingContact(contact);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveContact = async (formData: FormData) => {
+    if (!db) return;
+    const contactData = {
+      name: formData.get('name') as string,
+      role: formData.get('role') as string,
+      type: formData.get('type') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      notes: formData.get('notes') as string,
+    };
+
+    if (!contactData.name) {
+        toast({
+            variant: "destructive",
+            title: "Σφάλμα",
+            description: "Το πεδίο 'Όνομα/Εταιρεία' είναι υποχρεωτικό.",
+        });
+        return;
+    }
+
+    try {
+        if (editingContact) {
+            const contactRef = doc(db, 'tsia-contacts', editingContact.id);
+            await updateDoc(contactRef, contactData);
+            toast({ title: "Επιτυχία", description: "Η επαφή ενημερώθηκε." });
+        } else {
+            await addDoc(collection(db, 'tsia-contacts'), { ...contactData, createdAt: serverTimestamp() });
+            toast({ title: "Επιτυχία", description: "Η επαφή δημιουργήθηκε." });
+        }
+        setIsDialogOpen(false);
+        setEditingContact(null);
+    } catch (err) {
+        console.error("Save contact error:", err);
+        toast({
+            variant: "destructive",
+            title: "Σφάλμα",
+            description: "Αποτυχία αποθήκευσης της επαφής.",
+        });
+    }
+  };
+
+  const handleOpenDeleteAlert = (id: string) => {
+    setDeletingContactId(id);
+    setIsAlertOpen(true);
+  };
+
+  const handleDeleteContact = async () => {
+    if (!db || !deletingContactId) return;
+    try {
+        await deleteDoc(doc(db, 'tsia-contacts', deletingContactId));
+        toast({ title: "Επιτυχία", description: "Η επαφή διαγράφηκε." });
+    } catch (err) {
+        console.error("Delete contact error:", err);
+        toast({
+            variant: "destructive",
+            title: "Σφάλμα",
+            description: "Αποτυχία διαγραφής της επαφής.",
+        });
+    } finally {
+        setIsAlertOpen(false);
+        setDeletingContactId(null);
+    }
+  };
+
   const getInitials = (name: string) => {
     if (!name) return '';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -106,7 +201,7 @@ export default function Home() {
                 <h1 className="text-2xl font-semibold flex items-center gap-3"><BookUser/>Λίστα Επαφών</h1>
                 <p className="text-muted-foreground">Διαχειριστείτε όλες τις επαφές σας από ένα κεντρικό σημείο.</p>
             </div>
-            <Button><Plus className="mr-2"/>Νέα Επαφή</Button>
+            <Button onClick={() => handleOpenDialog()}><Plus className="mr-2"/>Νέα Επαφή</Button>
         </div>
 
         <div className="relative mb-6">
@@ -140,10 +235,10 @@ export default function Home() {
                                     Φόρτωση επαφών...
                                 </TableCell>
                             </TableRow>
-                        ) : entries.length === 0 ? (
+                        ) : entries.length === 0 && !error ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="text-center h-48 text-muted-foreground italic">
-                                   { error ? 'Η σύνδεση απέτυχε.' : 'Δεν υπάρχει καμία επαφή.'}
+                                   Δεν υπάρχει καμία επαφή.
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -189,11 +284,11 @@ export default function Home() {
                                           </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                          <DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleOpenDialog(entry)}>
                                             <Edit className="mr-2 h-4 w-4" />
                                             <span>Επεξεργασία</span>
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem className="text-destructive">
+                                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleOpenDeleteAlert(entry.id)}>
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             <span>Διαγραφή</span>
                                           </DropdownMenuItem>
@@ -207,6 +302,67 @@ export default function Home() {
                 </Table>
             </CardContent>
         </Card>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form action={handleSaveContact}>
+              <DialogHeader>
+                <DialogTitle>{editingContact ? 'Επεξεργασία Επαφής' : 'Νέα Επαφή'}</DialogTitle>
+                <DialogDescription>
+                  {editingContact ? 'Επεξεργαστείτε τα στοιχεία της επαφής.' : 'Συμπληρώστε τα στοιχεία για τη νέα επαφή.'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Όνομα/Εταιρεία</Label>
+                  <Input id="name" name="name" defaultValue={editingContact?.name} className="col-span-3" required/>
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">Ρόλος</Label>
+                  <Input id="role" name="role" defaultValue={editingContact?.role} placeholder="π.χ. Πελάτης, Συνεργάτης" className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="type" className="text-right">Είδος</Label>
+                  <Input id="type" name="type" defaultValue={editingContact?.type} placeholder="π.χ. Μηχανικός, Λογιστήριο" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">Email</Label>
+                  <Input id="email" name="email" type="email" defaultValue={editingContact?.email} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">Τηλέφωνο</Label>
+                  <Input id="phone" name="phone" defaultValue={editingContact?.phone} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="notes" className="text-right pt-2">Σημειώσεις</Label>
+                  <Textarea id="notes" name="notes" defaultValue={editingContact?.notes} className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Ακύρωση</Button>
+                <Button type="submit">Αποθήκευση</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Είστε βέβαιοι;</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Η επαφή θα διαγραφεί οριστικά από τη βάση δεδομένων.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Άκυρο</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteContact} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Διαγραφή
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </main>
   );
 }
