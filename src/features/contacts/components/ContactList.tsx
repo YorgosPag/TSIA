@@ -2,20 +2,18 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { ContactAvatar } from "./ContactAvatar";
 import type { Contact } from "@/features/contacts/types";
 import { useDebounce } from '@/hooks/use-debounce';
+import { Button } from '@/components/ui/button';
 
 interface ContactListProps {
     contacts: Contact[];
     selectedContactId?: string;
     onSelectContact: (contact: Contact) => void;
     loading: boolean;
-    onLoadMore: () => void;
-    hasMore: boolean;
 }
 
 const getDisplayName = (contact: Contact) => {
@@ -23,7 +21,7 @@ const getDisplayName = (contact: Contact) => {
     return fullName || contact.companyName;
 };
 
-export function ContactList({ contacts, selectedContactId, onSelectContact, loading, onLoadMore, hasMore }: ContactListProps) {
+export function ContactList({ contacts, selectedContactId, onSelectContact, loading }: ContactListProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -55,7 +53,7 @@ export function ContactList({ contacts, selectedContactId, onSelectContact, load
                 </div>
             </div>
             
-            {loading && contacts.length === 0 ? (
+            {loading ? (
                 <div className="p-4 text-center text-muted-foreground">Φόρτωση επαφών...</div>
             ) : (
                 <div className="flex-1 overflow-y-auto">
@@ -75,19 +73,6 @@ export function ContactList({ contacts, selectedContactId, onSelectContact, load
                             </Button>
                         ))}
                     </nav>
-                </div>
-            )}
-            
-            {hasMore && !searchTerm && (
-                <div className="p-2 border-t">
-                    <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={onLoadMore}
-                        disabled={loading}
-                    >
-                        {loading ? 'Φόρτωση...' : 'Φόρτωση Περισσότερων'}
-                    </Button>
                 </div>
             )}
         </>

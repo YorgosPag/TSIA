@@ -21,9 +21,7 @@ export default function ContactsPage() {
     error: contactsError, 
     addContact, 
     updateContact, 
-    deleteContact,
-    fetchMoreContacts,
-    hasMore
+    deleteContact
   } = useContacts();
   
   const { rolesList } = useRolesList();
@@ -137,8 +135,6 @@ export default function ContactsPage() {
           selectedContactId={selectedContact?.id}
           onSelectContact={handleSelectContact}
           loading={loadingContacts && contacts.length === 0}
-          onLoadMore={fetchMoreContacts}
-          hasMore={hasMore}
         />
       </div>
 
