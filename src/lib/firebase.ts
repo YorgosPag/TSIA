@@ -23,7 +23,7 @@ export function configIsValid(): boolean {
 }
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+const app = configIsValid() ? (!getApps().length ? initializeApp(firebaseConfig) : getApp()) : null;
+const db = app ? getFirestore(app) : null;
 
 export { app, db };
